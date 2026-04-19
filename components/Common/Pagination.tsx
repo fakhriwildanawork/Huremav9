@@ -6,6 +6,7 @@ interface PaginationProps {
   totalCount: number;
   pageSize: number;
   onPageChange: (page: number) => void;
+  itemName?: string;
 }
 
 const Pagination: React.FC<PaginationProps> = ({
@@ -13,6 +14,7 @@ const Pagination: React.FC<PaginationProps> = ({
   totalCount,
   pageSize,
   onPageChange,
+  itemName = 'DATA',
 }) => {
   const totalPages = Math.ceil(totalCount / pageSize);
   const from = totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1;
@@ -21,9 +23,9 @@ const Pagination: React.FC<PaginationProps> = ({
   if (totalCount === 0) return null;
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-6 bg-white border-t border-gray-100">
-      <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-        Menampilkan <span className="text-gray-700">{from}</span> hingga <span className="text-gray-700">{to}</span> dari <span className="text-gray-700">{totalCount}</span> data
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-6 bg-white border-t border-gray-100 w-full">
+      <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">
+        MENAMPILKAN <span className="text-gray-700">{from}</span> HINGGA <span className="text-gray-700">{to}</span> DARI <span className="text-gray-700">{totalCount}</span> {itemName}
       </div>
       
       <div className="flex items-center gap-1">

@@ -25,6 +25,7 @@ import { MainButtonStyle } from '../../utils/mainButtonStyle';
 import Swal from 'sweetalert2';
 import LeaveDetailModal from './components/LeaveDetailModal';
 import LeaveMandiriForm from './components/LeaveMandiriForm';
+import Pagination from '../../components/Common/Pagination';
 
 import { useHRAdminSubmissionScheme } from '../../utils/hrAdminSubmissionScheme';
 
@@ -241,26 +242,16 @@ const AdminLeaveMain: React.FC<AdminLeaveMainProps> = ({ user }) => {
             </tbody>
           </table>
         </div>
-        {/* Pagination */}
-        {totalCount > limit && (
-          <div className="px-8 py-4 border-t border-gray-100 flex items-center justify-between">
-            <button
-              disabled={page === 1}
-              onClick={() => setPage(p => p - 1)}
-              className="px-4 py-2 text-xs font-bold text-gray-600 hover:text-[#006E62] disabled:opacity-50"
-            >
-              Sebelumnya
-            </button>
-            <span className="text-xs font-bold text-gray-400">Halaman {page} dari {Math.ceil(totalCount / limit)}</span>
-            <button
-              disabled={page >= Math.ceil(totalCount / limit)}
-              onClick={() => setPage(p => p + 1)}
-              className="px-4 py-2 text-xs font-bold text-gray-600 hover:text-[#006E62] disabled:opacity-50"
-            >
-              Selanjutnya
-            </button>
-          </div>
-        )}
+        {/* Pagination Section */}
+        <div className="bg-white rounded-md border border-gray-100 shadow-sm overflow-hidden mb-8">
+          <Pagination
+            currentPage={page}
+            totalCount={totalCount}
+            pageSize={limit}
+            onPageChange={(p) => setPage(p)}
+            itemName="DATA PENGAJUAN"
+          />
+        </div>
       </div>
 
       {/* Modal Detail */}

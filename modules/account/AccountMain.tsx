@@ -934,15 +934,13 @@ const AccountMain: React.FC<AccountMainProps> = ({ user, setUser, isSelfProfile 
             </div>
           )}
 
-          <div className="mt-6 flex justify-between items-center bg-white p-4 rounded-md border border-gray-100 shadow-sm">
-            <div className="text-xs text-gray-500 font-medium">
-              Menampilkan <span className="text-[#006E62]">{accounts.length}</span> dari <span className="text-[#006E62]">{totalCount}</span> data akun
-            </div>
+          <div className="mt-6 flex justify-between items-center bg-white rounded-md border border-gray-100 shadow-sm overflow-hidden">
             <Pagination
               currentPage={currentPage}
               totalCount={totalCount}
               pageSize={PAGE_SIZE}
               onPageChange={(page) => setCurrentPage(page)}
+              itemName="DATA AKUN"
             />
           </div>
         </div>
