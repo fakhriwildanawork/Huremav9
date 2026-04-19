@@ -424,15 +424,10 @@ export const submissionService = {
   },
 
   async getPendingCounts() {
-    let query = supabase
-      .from('account_submissions')
-      .select('type, account:accounts!account_id!inner(location_id)')
-      .ilike('status', 'pending');
-    
-    // Apply Admin Location Scope
     const { authService } = await import('./authService');
     const user = authService.getCurrentUser();
-    
+    if (!user) return {};
+
     const counts: Record<string, number> = {
       'Libur Mandiri': 0,
       'Lembur': 0,
@@ -442,28 +437,32 @@ export const submissionService = {
       'Presensi Luar': 0
     };
 
-    // Scoping for submissions
-    if (user) {
-      // For Submission Counts, we only care about HR scope for the primary HR tabs
-      const hrScope = user.hr_scope;
-      
-      if (hrScope?.mode === 'limited') {
-        const allowedIds = hrScope.location_ids || [];
-        if (allowedIds.length > 0) {
-          query = query.in('account.location_id', allowedIds);
-        } else {
-          // If limited but no IDs, return 0 for everything
-          return counts;
-        }
+    let query = supabase
+      .from('account_submissions')
+      .select('type, status, account:accounts!account_id!inner(location_id)')
+      .eq('status', 'Pending');
+    
+    // Apply Admin Location Scope
+    if (user?.hr_scope?.mode === 'limited') {
+      const allowedIds = user.hr_scope.location_ids || [];
+      if (allowedIds.length > 0) {
+        query = query.in('account.location_id', allowedIds);
+      } else {
+        return counts;
       }
     }
 
     const { data: submissionsData, error: submissionsError } = await query;
-    if (submissionsError) throw submissionsError;
-
-    submissionsData?.forEach(item => {
-      counts[item.type] = (counts[item.type] || 0) + 1;
-    });
+    if (submissionsError) {
+      console.error('Error in getPendingCounts (submissions):', submissionsError);
+    } else {
+      submissionsData?.forEach(item => {
+        const typeKey = item.type?.trim();
+        if (typeKey && counts.hasOwnProperty(typeKey)) {
+          counts[typeKey]++;
+        }
+      });
+    }
 
     // Fetch Pending "Presensi Luar" from attendances table
     let attendanceQuery = supabase

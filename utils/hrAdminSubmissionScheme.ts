@@ -75,7 +75,12 @@ export const useHRAdminSubmissionScheme = (
         // filter: `type=eq.${type}` 
       }, (payload: any) => {
         // Only refresh if the change is relevant to our type
-        if (payload.new?.type === type || payload.old?.type === type) {
+        // Note: For DELETE events, payload.old might only contain the ID.
+        // In that case, we refresh to be safe (as deletions are rare compared to reads)
+        const isDelete = payload.eventType === 'DELETE';
+        const isTypeMatch = payload.new?.type === type || payload.old?.type === type;
+        
+        if (isDelete || isTypeMatch) {
           if (fetchDataRef.current) fetchDataRef.current(true);
         }
       })
