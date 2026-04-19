@@ -180,7 +180,7 @@ const AdminLeaveMain: React.FC<AdminLeaveMainProps> = ({ user }) => {
                   >
                     <td className="px-8 py-5">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-2xl overflow-hidden bg-white shadow-sm border border-gray-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <div className="w-10 h-10 rounded-full overflow-hidden bg-white shadow-sm border border-gray-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                           {req.account?.photo_google_id ? (
                             <img 
                               src={googleDriveService.getFileUrl(req.account.photo_google_id)} 
