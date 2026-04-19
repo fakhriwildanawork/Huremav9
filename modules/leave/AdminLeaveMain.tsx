@@ -26,89 +26,36 @@ import Swal from 'sweetalert2';
 import LeaveDetailModal from './components/LeaveDetailModal';
 import LeaveMandiriForm from './components/LeaveMandiriForm';
 
+import { useHRAdminSubmissionScheme } from '../../utils/hrAdminSubmissionScheme';
+
 interface AdminLeaveMainProps {
   user: AuthUser;
 }
 
 const AdminLeaveMain: React.FC<AdminLeaveMainProps> = ({ user }) => {
-  const [requests, setRequests] = useState<Submission[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeQuery, setActiveQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('Pending');
+  const {
+    data: requests,
+    totalCount,
+    isLoading,
+    page,
+    setPage,
+    searchTerm,
+    setSearchTerm,
+    statusFilter,
+    handleSearch,
+    handleStatusChange: handleStatusFilterChange,
+    refresh,
+    pageSize: limit
+  } = useHRAdminSubmissionScheme('Libur Mandiri', user);
+
   const [selectedRequest, setSelectedRequest] = useState<Submission | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const limit = 25;
-
-  useEffect(() => {
-    fetchRequests();
-
-    // Realtime subscription for Admin
-    const channel = supabase
-      .channel('admin-leave-mandiri-realtime')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'account_submissions'
-      }, (payload) => {
-        console.log('Realtime update received:', payload);
-        fetchRequests(true);
-      })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('Realtime: Subscribed to AdminLeaveMain');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('Realtime: Error subscribing to AdminLeaveMain');
-        }
-      });
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [page, statusFilter, activeQuery]);
-
-  const fetchRequests = async (isSilent = false) => {
-    try {
-      if (!isSilent) setIsLoading(true);
-      console.log('Fetching requests...');
-      const { data, totalCount } = await submissionService.getByTypePaged(
-        'Libur Mandiri', 
-        page, 
-        limit, 
-        statusFilter === 'SEMUA STATUS' ? 'ALL' : statusFilter,
-        activeQuery
-      );
-      
-      console.log('Requests fetched:', data);
-      setRequests(data);
-      setTotalCount(totalCount);
-    } catch (error) {
-      console.error('Error fetching requests:', error);
-    } finally {
-      if (!isSilent) setIsLoading(false);
-    }
-  };
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPage(1);
-    setActiveQuery(searchTerm);
-  };
-
-  const handleStatusFilterChange = (status: string) => {
-    setStatusFilter(status);
-    setPage(1);
-    setSearchTerm('');
-    setActiveQuery('');
-  };
 
   const handleVerify = async (id: string, status: 'approved' | 'rejected') => {
     const dbStatus = status === 'approved' ? 'Disetujui' : 'Ditolak';
     try {
       await submissionService.verify(id, dbStatus, user.id);
-      fetchRequests(true);
+      refresh();
       setSelectedRequest(null);
       Swal.fire('Berhasil', `Pengajuan telah ${dbStatus.toLowerCase()}.`, 'success');
     } catch (error) {
@@ -129,7 +76,7 @@ const AdminLeaveMain: React.FC<AdminLeaveMainProps> = ({ user }) => {
     if (result.isConfirmed) {
       try {
         await submissionService.delete(id);
-        setRequests(prev => prev.filter(r => r.id !== id));
+        refresh();
         Swal.fire('Berhasil', 'Data telah dihapus.', 'success');
       } catch (error) {
         Swal.fire('Gagal', 'Gagal menghapus data.', 'error');
@@ -137,13 +84,9 @@ const AdminLeaveMain: React.FC<AdminLeaveMainProps> = ({ user }) => {
     }
   };
 
-  const filteredRequests = requests.filter(req => {
-    const matchesSearch = 
-      req.account?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.account?.internal_nik?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'SEMUA STATUS' || req.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  }).sort((a, b) => {
+  // Client-side filtering as fallback/extra layer if needed, 
+  // but hook already handles server-side search and status.
+  const displayRequests = requests.sort((a, b) => {
     const dateA = a.submission_data?.start_date || '';
     const dateB = b.submission_data?.start_date || '';
     return dateB.localeCompare(dateA);
@@ -228,7 +171,7 @@ const AdminLeaveMain: React.FC<AdminLeaveMainProps> = ({ user }) => {
                   <td colSpan={5} className="px-8 py-20 text-center text-gray-400 italic text-xs font-medium">Tidak ada data yang ditemukan.</td>
                 </tr>
               ) : (
-                requests.map((req) => (
+                displayRequests.map((req) => (
                   <tr 
                     key={req.id} 
                     onClick={() => setSelectedRequest(req)}
@@ -349,7 +292,7 @@ const AdminLeaveMain: React.FC<AdminLeaveMainProps> = ({ user }) => {
           onClose={() => setShowForm(false)}
           onSuccess={() => {
             setShowForm(false);
-            fetchRequests();
+            refresh();
           }}
         />
       )}
