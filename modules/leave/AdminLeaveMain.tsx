@@ -243,7 +243,7 @@ const AdminLeaveMain: React.FC<AdminLeaveMainProps> = ({ user }) => {
           </table>
         </div>
         {/* Pagination Section */}
-        <div className="bg-white rounded-md border border-gray-100 shadow-sm overflow-hidden mb-8">
+        <div className="mt-8 bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden mb-8">
           <Pagination
             currentPage={page}
             totalCount={totalCount}

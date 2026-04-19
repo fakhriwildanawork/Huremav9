@@ -23,7 +23,7 @@ const Pagination: React.FC<PaginationProps> = ({
   if (totalCount === 0) return null;
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-6 bg-white border-t border-gray-100 w-full">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-6 bg-white w-full">
       <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">
         MENAMPILKAN <span className="text-gray-700">{from}</span> HINGGA <span className="text-gray-700">{to}</span> DARI <span className="text-gray-700">{totalCount}</span> {itemName}
       </div>

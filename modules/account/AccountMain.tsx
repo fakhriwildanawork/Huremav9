@@ -934,7 +934,7 @@ const AccountMain: React.FC<AccountMainProps> = ({ user, setUser, isSelfProfile 
             </div>
           )}
 
-          <div className="mt-6 flex justify-between items-center bg-white rounded-md border border-gray-100 shadow-sm overflow-hidden">
+          <div className="mt-8 bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden mb-8">
             <Pagination
               currentPage={currentPage}
               totalCount={totalCount}

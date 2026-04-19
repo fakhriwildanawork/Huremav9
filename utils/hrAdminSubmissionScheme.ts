@@ -17,6 +17,10 @@ export const HR_PAGE_SIZE = 25;
  * 1. Pagination (Fixed at 25)
  * 2. Active Listening (Supabase Realtime)
  * 3. Finetuning Fetching (Search, Status, and Scope-aware fetching)
+ * 
+ * DESIGN STANDARDS:
+ * - Layout: Always place the Pagination component in a SEPARATE Card at the very bottom.
+ * - Spacing: Use 'mt-8' on the Pagination container and 'rounded-xl' for consistency.
  */
 export const useHRAdminSubmissionScheme = (
   type: string, 
