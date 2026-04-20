@@ -84,6 +84,20 @@ const IzinDetailModalUser: React.FC<IzinDetailModalUserProps> = ({
     return 'Nego';
   };
 
+  const formatDateCustom = (dateStr: string) => {
+    if (!dateStr) return '-';
+    try {
+      const date = new Date(dateStr);
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = months[date.getMonth()];
+      const year = date.getFullYear();
+      return `${day} ${month} ${year}`;
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
   const getPhotoUrl = (photoId: string | null) => {
     if (!photoId) return null;
     if (photoId.startsWith('http')) return photoId;
@@ -134,7 +148,7 @@ const IzinDetailModalUser: React.FC<IzinDetailModalUserProps> = ({
              </div>
              <div className="text-right">
                 <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Diajukan Pada</p>
-                <p className="text-xs font-bold text-gray-700">{formatDateID(request.created_at)}</p>
+                <p className="text-xs font-bold text-gray-700">{formatDateCustom(request.created_at)}</p>
              </div>
           </div>
 
@@ -153,12 +167,12 @@ const IzinDetailModalUser: React.FC<IzinDetailModalUserProps> = ({
               <div className="flex items-center justify-between bg-gray-50 p-4 rounded-xl">
                 <div className="text-center flex-1">
                   <p className="text-[8px] font-bold text-gray-400 uppercase mb-1">Mulai</p>
-                  <p className="text-[11px] font-black text-gray-700">{formatDateID(request.start_date)}</p>
+                  <p className="text-[11px] font-black text-gray-700">{formatDateCustom(request.start_date)}</p>
                 </div>
                 <ArrowRight size={14} className="text-gray-300 mx-2" />
                 <div className="text-center flex-1">
                   <p className="text-[8px] font-bold text-gray-400 uppercase mb-1">Sampai</p>
-                  <p className="text-[11px] font-black text-gray-700">{formatDateID(request.end_date)}</p>
+                  <p className="text-[11px] font-black text-gray-700">{formatDateCustom(request.end_date)}</p>
                 </div>
               </div>
             </div>
@@ -171,7 +185,7 @@ const IzinDetailModalUser: React.FC<IzinDetailModalUserProps> = ({
               <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Keterangan / Alasan</h4>
             </div>
             <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 italic">
-              <p className="text-sm text-gray-600 leading-relaxed">
+              <p className="text-sm text-gray-600 leading-relaxed break-words whitespace-pre-wrap">
                 "{request.description || 'Tidak ada keterangan tambahan.'}"
               </p>
             </div>
@@ -243,13 +257,13 @@ const IzinDetailModalUser: React.FC<IzinDetailModalUserProps> = ({
 
                          {/* Line 2: Start - End Date (Left) */}
                          <div className="text-[10px] font-bold text-gray-700">
-                            {formatDateID(nego.start_date)} - {formatDateID(nego.end_date)}
+                            {formatDateCustom(nego.start_date)} - {formatDateCustom(nego.end_date)}
                          </div>
 
                          {/* Line 3: DateTime (Left) | Label Status (Right) */}
                          <div className="flex justify-between items-end mt-1">
                             <span className="text-[9px] text-gray-400 font-bold uppercase tracking-tight">
-                              {new Date(nego.timestamp).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                              {formatDateCustom(nego.timestamp)} • {new Date(nego.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                             </span>
                             <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest ${
                               statusLabel === 'Setuju' ? 'bg-emerald-50 text-emerald-600' :
@@ -291,7 +305,7 @@ const IzinDetailModalUser: React.FC<IzinDetailModalUserProps> = ({
                   <div>
                     <p className="text-sm font-black text-gray-800 leading-tight">{verifierInfo.verifier?.full_name || 'Administrator'}</p>
                     <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">
-                      {new Date(verifierInfo.verified_at).toLocaleString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      {formatDateCustom(verifierInfo.verified_at)} • {new Date(verifierInfo.verified_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
                </div>
@@ -312,9 +326,9 @@ const IzinDetailModalUser: React.FC<IzinDetailModalUserProps> = ({
 
       {/* Sub-modal: Tektokan Detail Popup */}
       {selectedNegoItem && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-6 backdrop-blur-sm animate-in fade-in duration-200">
-           <div className="bg-white w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-              <div className="p-6 space-y-6">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-6 backdrop-blur-md animate-in fade-in duration-200">
+           <div className="bg-white w-full max-w-sm rounded-[24px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[80vh]">
+              <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar">
                  <div className="flex justify-between items-start">
                     <div className="space-y-1">
                        <h3 className="text-base font-black text-gray-800 leading-tight truncate max-w-[200px]">{selectedNegoItem.displayName}</h3>
@@ -327,7 +341,7 @@ const IzinDetailModalUser: React.FC<IzinDetailModalUserProps> = ({
                             {selectedNegoItem.statusLabel}
                           </span>
                           <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">
-                            {new Date(selectedNegoItem.timestamp).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}
+                            {formatDateCustom(selectedNegoItem.timestamp)} • {new Date(selectedNegoItem.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                           </span>
                        </div>
                     </div>
@@ -343,15 +357,15 @@ const IzinDetailModalUser: React.FC<IzinDetailModalUserProps> = ({
                     <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Tanggal Diajukan</p>
                        <div className="flex items-center gap-2 text-xs font-black text-gray-700">
-                          <span>{formatDateID(selectedNegoItem.start_date)}</span>
+                          <span>{formatDateCustom(selectedNegoItem.start_date)}</span>
                           <ArrowRight size={12} className="text-gray-300" />
-                          <span>{formatDateID(selectedNegoItem.end_date)}</span>
+                          <span>{formatDateCustom(selectedNegoItem.end_date)}</span>
                        </div>
                     </div>
 
                     <div className="space-y-2 px-1">
                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Keterangan / Alasan</p>
-                       <p className="text-sm text-gray-600 leading-relaxed italic">
+                       <p className="text-sm text-gray-600 leading-relaxed italic break-words whitespace-pre-wrap">
                           "{selectedNegoItem.reason || 'Tidak ada keterangan.'}"
                        </p>
                     </div>
