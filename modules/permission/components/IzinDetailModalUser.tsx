@@ -127,7 +127,7 @@ const IzinDetailModalUser: React.FC<IzinDetailModalUserProps> = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar max-h-[70vh]">
+        <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
           {/* Status Capsule */}
           <div className="flex items-center justify-between bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
              <div className="flex items-center gap-3">
@@ -328,55 +328,58 @@ const IzinDetailModalUser: React.FC<IzinDetailModalUserProps> = ({
       {selectedNegoItem && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-6 backdrop-blur-md animate-in fade-in duration-200">
            <div className="bg-white w-full max-w-sm rounded-[24px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[80vh]">
-              <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar">
-                 <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                       <h3 className="text-base font-black text-gray-800 leading-tight truncate max-w-[200px]">{selectedNegoItem.displayName}</h3>
-                       <div className="flex items-center gap-2">
-                          <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest ${
-                            selectedNegoItem.statusLabel === 'Setuju' ? 'bg-emerald-50 text-emerald-600' :
-                            selectedNegoItem.statusLabel === 'Tolak' ? 'bg-rose-50 text-rose-600' :
-                            'bg-amber-50 text-amber-600'
-                          }`}>
-                            {selectedNegoItem.statusLabel}
-                          </span>
-                          <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">
-                            {formatDateCustom(selectedNegoItem.timestamp)} • {new Date(selectedNegoItem.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                       </div>
-                    </div>
-                    <button 
-                      onClick={() => setSelectedNegoItem(null)}
-                      className="w-8 h-8 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center active:scale-90 transition-all"
-                    >
-                      <X size={16} />
-                    </button>
-                 </div>
-
-                 <div className="space-y-4">
-                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
-                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Tanggal Diajukan</p>
-                       <div className="flex items-center gap-2 text-xs font-black text-gray-700">
-                          <span>{formatDateCustom(selectedNegoItem.start_date)}</span>
-                          <ArrowRight size={12} className="text-gray-300" />
-                          <span>{formatDateCustom(selectedNegoItem.end_date)}</span>
-                       </div>
-                    </div>
-
-                    <div className="space-y-2 px-1">
-                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Keterangan / Alasan</p>
-                       <p className="text-sm text-gray-600 leading-relaxed italic break-words whitespace-pre-wrap">
-                          "{selectedNegoItem.reason || 'Tidak ada keterangan.'}"
-                       </p>
-                    </div>
-                 </div>
-
-                 <button 
+              {/* Header */}
+              <div className="p-6 flex justify-between items-start border-b border-gray-50">
+                <div className="space-y-1">
+                   <h3 className="text-base font-black text-gray-800 leading-tight truncate max-w-[200px]">{selectedNegoItem.displayName}</h3>
+                   <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest ${
+                        selectedNegoItem.statusLabel === 'Setuju' ? 'bg-emerald-50 text-emerald-600' :
+                        selectedNegoItem.statusLabel === 'Tolak' ? 'bg-rose-50 text-rose-600' :
+                        'bg-amber-50 text-amber-600'
+                      }`}>
+                        {selectedNegoItem.statusLabel}
+                      </span>
+                      <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">
+                        {formatDateCustom(selectedNegoItem.timestamp)} • {new Date(selectedNegoItem.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                   </div>
+                </div>
+                <button 
                   onClick={() => setSelectedNegoItem(null)}
-                  className="w-full py-4 bg-gray-800 text-white rounded-2xl text-xs font-black uppercase tracking-widest active:scale-95 transition-all"
-                 >
-                    Kembali
-                 </button>
+                  className="w-8 h-8 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center active:scale-90 transition-all"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Scrollable Content */}
+              <div className="flex-1 p-6 space-y-4 overflow-y-auto custom-scrollbar">
+                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
+                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Tanggal Diajukan</p>
+                   <div className="flex items-center gap-2 text-xs font-black text-gray-700">
+                      <span>{formatDateCustom(selectedNegoItem.start_date)}</span>
+                      <ArrowRight size={12} className="text-gray-300" />
+                      <span>{formatDateCustom(selectedNegoItem.end_date)}</span>
+                   </div>
+                </div>
+
+                <div className="space-y-2 px-1">
+                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Keterangan / Alasan</p>
+                   <p className="text-sm text-gray-600 leading-relaxed italic break-words whitespace-pre-wrap">
+                      "{selectedNegoItem.reason || 'Tidak ada keterangan.'}"
+                   </p>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-6 pt-0">
+                <button 
+                  onClick={() => setSelectedNegoItem(null)}
+                  className="w-full py-4 bg-gray-800 text-white rounded-2xl text-xs font-black uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-gray-200"
+                >
+                  Kembali
+                </button>
               </div>
            </div>
         </div>
