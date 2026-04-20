@@ -19,6 +19,7 @@ import IzinDetailModalUser from './components/IzinDetailModalUser';
 import { formatDateID } from '../../utils/dateFormatter';
 import { listCardStyleGuide } from '../../utils/listCardStyleGuide';
 import { MainButtonStyle } from '../../utils/mainButtonStyle';
+import { navigationHelper } from '../../utils/navigationHelper';
 
 interface IzinDashboardProps {
   user: AuthUser;
@@ -114,13 +115,7 @@ const IzinDashboard: React.FC<IzinDashboardProps> = ({
       <div className="px-6 pt-8 pb-4 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-30">
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => {
-              if (setActiveTab) {
-                setActiveTab('dashboard');
-              } else {
-                window.history.back();
-              }
-            }}
+            onClick={() => navigationHelper.backToDashboard(setActiveTab)}
             className="w-10 h-10 bg-gray-50 text-gray-400 rounded-xl flex items-center justify-center active:scale-90 transition-all font-bold"
           >
             <ArrowLeft size={20} />

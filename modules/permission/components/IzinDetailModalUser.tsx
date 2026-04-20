@@ -18,7 +18,8 @@ import {
   History,
   User,
   MessageSquare,
-  ShieldCheck
+  ShieldCheck,
+  ChevronRight
 } from 'lucide-react';
 
 interface IzinDetailModalUserProps {
@@ -34,9 +35,10 @@ const IzinDetailModalUser: React.FC<IzinDetailModalUserProps> = ({
 }) => {
   const [verifierInfo, setVerifierInfo] = useState<any>(null);
   const [isLoadingVerifier, setIsLoadingVerifier] = useState(false);
+  const [selectedNegoItem, setSelectedNegoItem] = useState<any>(null);
 
   useEffect(() => {
-    if (request.status === 'approved' || request.status === 'rejected') {
+    if (request.id) {
       loadVerifierInfo();
     }
   }, [request.id, request.status]);
@@ -71,6 +73,15 @@ const IzinDetailModalUser: React.FC<IzinDetailModalUserProps> = ({
       case 'cancelled': return 'Dibatalkan';
       default: return 'Pending';
     }
+  };
+
+  const getNegoStatusLabel = (nego: any, isLast: boolean) => {
+    if (isLast) {
+      if (request.status === 'approved') return 'Setuju';
+      if (request.status === 'rejected') return 'Tolak';
+      if (request.status === 'cancelled') return 'Batal';
+    }
+    return 'Nego';
   };
 
   const getPhotoUrl = (photoId: string | null) => {
@@ -206,26 +217,53 @@ const IzinDetailModalUser: React.FC<IzinDetailModalUserProps> = ({
                  <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Histori Tektokan</h4>
               </div>
               <div className="space-y-4 relative before:absolute before:left-5 before:top-2 before:bottom-2 before:w-px before:bg-gray-100 px-1">
-                {request.negotiation_data.map((nego, idx) => (
-                  <div key={idx} className="relative pl-10">
-                    <div className={`absolute left-3 top-1 w-4 h-4 rounded-full border-2 border-white shadow-sm flex items-center justify-center ${nego.role === 'admin' ? 'bg-[#006E62]' : 'bg-blue-500'}`}>
-                      {nego.role === 'admin' ? <ShieldCheck size={8} className="text-white" /> : <User size={8} className="text-white" />}
+                {request.negotiation_data.map((nego, idx) => {
+                  const isLast = idx === request.negotiation_data!.length - 1;
+                  const displayName = nego.role === 'admin' 
+                    ? (verifierInfo?.verifier?.full_name || 'Administrator') 
+                    : user.full_name;
+                  const statusLabel = getNegoStatusLabel(nego, isLast);
+
+                  return (
+                    <div key={idx} className="relative pl-10">
+                      <div className={`absolute left-3 top-1 w-4 h-4 rounded-full border-2 border-white shadow-sm flex items-center justify-center ${nego.role === 'admin' ? 'bg-[#006E62]' : 'bg-blue-500'}`}>
+                        {nego.role === 'admin' ? <ShieldCheck size={8} className="text-white" /> : <User size={8} className="text-white" />}
+                      </div>
+                      <button 
+                        onClick={() => setSelectedNegoItem({ ...nego, displayName, statusLabel })}
+                        className="w-full text-left bg-white border border-gray-100 p-4 rounded-2xl shadow-sm space-y-1 active:scale-[0.98] transition-all group"
+                      >
+                         {/* Line 1: Username (Left) */}
+                         <div className="flex justify-between items-center">
+                            <span className={`text-[10px] font-black uppercase tracking-widest ${nego.role === 'admin' ? 'text-[#006E62]' : 'text-blue-500'} truncate mr-2`}>
+                              {displayName}
+                            </span>
+                            <ChevronRight size={14} className="text-gray-300 group-hover:text-gray-500 transition-colors" />
+                         </div>
+
+                         {/* Line 2: Start - End Date (Left) */}
+                         <div className="text-[10px] font-bold text-gray-700">
+                            {formatDateID(nego.start_date)} - {formatDateID(nego.end_date)}
+                         </div>
+
+                         {/* Line 3: DateTime (Left) | Label Status (Right) */}
+                         <div className="flex justify-between items-end mt-1">
+                            <span className="text-[9px] text-gray-400 font-bold uppercase tracking-tight">
+                              {new Date(nego.timestamp).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest ${
+                              statusLabel === 'Setuju' ? 'bg-emerald-50 text-emerald-600' :
+                              statusLabel === 'Tolak' ? 'bg-rose-50 text-rose-600' :
+                              statusLabel === 'Batal' ? 'bg-gray-50 text-gray-500' :
+                              'bg-amber-50 text-amber-600'
+                            }`}>
+                              {statusLabel}
+                            </span>
+                         </div>
+                      </button>
                     </div>
-                    <div className="bg-white border border-gray-100 p-4 rounded-2xl shadow-sm space-y-2">
-                       <div className="flex justify-between items-center">
-                          <span className={`text-[9px] font-black uppercase tracking-widest ${nego.role === 'admin' ? 'text-[#006E62]' : 'text-blue-500'}`}>
-                            {nego.role === 'admin' ? 'ADMINISTRATOR' : 'ANDA'}
-                          </span>
-                          <span className="text-[8px] text-gray-300 font-bold">{new Date(nego.timestamp).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}</span>
-                       </div>
-                       <div className="flex items-center gap-2 text-[10px] font-black text-gray-700">
-                          <Clock size={10} className="text-gray-300" />
-                          <span>{formatDateID(nego.start_date)} - {formatDateID(nego.end_date)}</span>
-                       </div>
-                       <p className="text-xs text-gray-500 italic leading-relaxed">"{nego.reason}"</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -271,6 +309,64 @@ const IzinDetailModalUser: React.FC<IzinDetailModalUserProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Sub-modal: Tektokan Detail Popup */}
+      {selectedNegoItem && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-6 backdrop-blur-sm animate-in fade-in duration-200">
+           <div className="bg-white w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+              <div className="p-6 space-y-6">
+                 <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                       <h3 className="text-base font-black text-gray-800 leading-tight truncate max-w-[200px]">{selectedNegoItem.displayName}</h3>
+                       <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest ${
+                            selectedNegoItem.statusLabel === 'Setuju' ? 'bg-emerald-50 text-emerald-600' :
+                            selectedNegoItem.statusLabel === 'Tolak' ? 'bg-rose-50 text-rose-600' :
+                            'bg-amber-50 text-amber-600'
+                          }`}>
+                            {selectedNegoItem.statusLabel}
+                          </span>
+                          <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">
+                            {new Date(selectedNegoItem.timestamp).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}
+                          </span>
+                       </div>
+                    </div>
+                    <button 
+                      onClick={() => setSelectedNegoItem(null)}
+                      className="w-8 h-8 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center active:scale-90 transition-all"
+                    >
+                      <X size={16} />
+                    </button>
+                 </div>
+
+                 <div className="space-y-4">
+                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
+                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Tanggal Diajukan</p>
+                       <div className="flex items-center gap-2 text-xs font-black text-gray-700">
+                          <span>{formatDateID(selectedNegoItem.start_date)}</span>
+                          <ArrowRight size={12} className="text-gray-300" />
+                          <span>{formatDateID(selectedNegoItem.end_date)}</span>
+                       </div>
+                    </div>
+
+                    <div className="space-y-2 px-1">
+                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Keterangan / Alasan</p>
+                       <p className="text-sm text-gray-600 leading-relaxed italic">
+                          "{selectedNegoItem.reason || 'Tidak ada keterangan.'}"
+                       </p>
+                    </div>
+                 </div>
+
+                 <button 
+                  onClick={() => setSelectedNegoItem(null)}
+                  className="w-full py-4 bg-gray-800 text-white rounded-2xl text-xs font-black uppercase tracking-widest active:scale-95 transition-all"
+                 >
+                    Kembali
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 };
