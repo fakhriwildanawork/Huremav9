@@ -15,7 +15,7 @@ import {
 import { permissionService } from '../../services/permissionService';
 import { PermissionRequest, AuthUser } from '../../types';
 import Swal from 'sweetalert2';
-import PermissionDetail from './PermissionDetail';
+import IzinDetailModalUser from './components/IzinDetailModalUser';
 import { formatDateID } from '../../utils/dateFormatter';
 import { listCardStyleGuide } from '../../utils/listCardStyleGuide';
 import { MainButtonStyle } from '../../utils/mainButtonStyle';
@@ -126,7 +126,7 @@ const IzinDashboard: React.FC<IzinDashboardProps> = ({
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h2 className="text-lg font-bold text-gray-800 tracking-tight">Izin</h2>
+            <h2 className="text-lg font-bold text-gray-800 tracking-tight">Izin Kerja</h2>
           </div>
         </div>
         <button 
@@ -202,11 +202,10 @@ const IzinDashboard: React.FC<IzinDashboardProps> = ({
 
       {/* Detail Modal */}
       {selectedRequest && (
-        <PermissionDetail 
+        <IzinDetailModalUser 
           request={selectedRequest}
-          user={user}
           onClose={() => setSelectedRequest(null)}
-          onUpdate={fetchRequests}
+          user={user}
         />
       )}
     </div>

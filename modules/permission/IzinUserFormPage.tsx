@@ -159,7 +159,7 @@ const IzinUserFormPage: React.FC<IzinUserFormPageProps> = ({
           <div>
             <h2 className="text-lg font-bold text-gray-800 tracking-tight">Form Izin</h2>
             <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest leading-tight">
-              Pusat Pengajuan Izin Karyawan
+              Pengajuan Izin Karyawan
             </p>
           </div>
         </div>

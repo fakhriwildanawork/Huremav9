@@ -227,5 +227,23 @@ export const permissionService = {
     
     if (error) throw error;
     return data || [];
+  },
+
+  /**
+   * Mendapatkan info verifikator dari tabel submissions
+   */
+  async getVerifierInfo(requestId: string): Promise<any> {
+    const { data, error } = await supabase
+      .from('account_submissions')
+      .select('verified_at, verifier:accounts!verifier_id(full_name, photo_google_id)')
+      .eq('type', 'Izin')
+      .contains('submission_data', { permission_request_id: requestId })
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Error fetching verifier info:', error);
+      return null;
+    }
+    return data;
   }
 };
