@@ -413,7 +413,19 @@ export const submissionService = {
       }
     }
 
-    // 3. Hapus record submission
+    // 3. Jika Izin, hapus juga record aslinya
+    if (submission?.type === 'Izin' && submission.submission_data?.permission_request_id) {
+      try {
+        await supabase
+          .from('account_permission_requests')
+          .delete()
+          .eq('id', submission.submission_data.permission_request_id);
+      } catch (permError) {
+        console.warn('Failed to cleanup associated permission request:', permError);
+      }
+    }
+
+    // 4. Hapus record submission
     const { error } = await supabase
       .from('account_submissions')
       .delete()

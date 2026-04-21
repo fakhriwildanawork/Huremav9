@@ -177,13 +177,13 @@ const LeaveMandiriDashboard: React.FC<LeaveMandiriDashboardProps> = ({
                 {getStatusBadge(req.status)}
               </div>
 
-              {/* Line 2: Description (Left) */}
-              <p className={`${listCardStyleGuide.subtitle} text-left opacity-80 !normal-case font-normal`}>
+              {/* Line 2: Description (Left Truncated) */}
+              <p className={`${listCardStyleGuide.subtitle} text-left opacity-100 !normal-case font-medium text-gray-500 line-clamp-1 truncate`}>
                 {req.description || 'Tidak ada keterangan'}
               </p>
 
               {/* Line 3: Actions (Right) */}
-              <div className="flex items-center justify-end w-full gap-2 mt-1">
+              <div className="flex items-center justify-end w-full gap-2">
                 {req.status === 'rejected' && (
                   <div 
                     onClick={(e) => {

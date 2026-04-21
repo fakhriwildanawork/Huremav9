@@ -148,22 +148,25 @@ const IzinDashboard: React.FC<IzinDashboardProps> = ({
               onClick={() => setSelectedRequest(req)}
               className={`${listCardStyleGuide.container} flex-col items-stretch gap-3`}
             >
+              {/* Line 1: Date (Left) | Status (Right) */}
               <div className="flex items-center justify-between w-full">
-                <p className={listCardStyleGuide.title}>
+                <p className={`${listCardStyleGuide.title} !text-[11px]`}>
                   {formatDateID(req.start_date)} {req.end_date && req.end_date !== req.start_date ? `- ${formatDateID(req.end_date)}` : ''}
                 </p>
                 {getStatusBadge(req.status)}
               </div>
 
-              <div className="flex items-center justify-between w-full">
-                <p className={`${listCardStyleGuide.subtitle} text-left opacity-80 !normal-case font-bold text-[#006E62]`}>
+              {/* Line 2: Permission Type (Left) | Reason (Right Truncated) */}
+              <div className="flex items-center justify-between w-full gap-4">
+                <p className={`${listCardStyleGuide.subtitle} text-left opacity-100 !normal-case font-black text-[#006E62] shrink-0`}>
                   {req.permission_type}
                 </p>
-                <p className="text-[10px] text-gray-400 font-medium italic truncate max-w-[150px]">
+                <p className="text-[10px] text-gray-400 font-medium italic truncate flex-1 text-left">
                   {req.description}
                 </p>
               </div>
 
+              {/* Line 3: Actions (Right) */}
               <div className="flex items-center justify-end w-full gap-2">
                 {req.status === 'rejected' && (
                   <div 

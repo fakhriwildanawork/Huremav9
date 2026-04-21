@@ -205,6 +205,16 @@ export const permissionService = {
    * Menghapus pengajuan izin
    */
   async delete(id: string): Promise<void> {
+    // 1. Hapus di tabel submissions pusat dulu (berdasarkan permission_request_id)
+    try {
+      await supabase.from('account_submissions')
+        .delete()
+        .contains('submission_data', { permission_request_id: id });
+    } catch (subError) {
+      console.warn('Failed to cleanup central submission record:', subError);
+    }
+
+    // 2. Hapus record asli
     const { error } = await supabase
       .from('account_permission_requests')
       .delete()

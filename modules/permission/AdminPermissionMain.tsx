@@ -20,9 +20,9 @@ import { Submission, AuthUser, PermissionRequest } from '../../types';
 import { AdminMadeDeletion } from '../../lib/adminAuthHelper';
 import { MainButtonStyle } from '../../utils/mainButtonStyle';
 import Swal from 'sweetalert2';
-import PermissionDetail from './PermissionDetail';
 import PermissionForm from './PermissionForm';
 import Pagination from '../../components/Common/Pagination';
+import IzinDetailModalAdmin from './components/IzinDetailModalAdmin';
 
 import { useHRAdminSubmissionScheme } from '../../utils/hrAdminSubmissionScheme';
 
@@ -48,6 +48,18 @@ const AdminPermissionMain: React.FC<AdminPermissionMainProps> = ({ user }) => {
 
   const [selectedRequest, setSelectedRequest] = useState<Submission | null>(null);
   const [showForm, setShowForm] = useState(false);
+
+  const handleVerify = async (id: string, status: 'approved' | 'rejected') => {
+    const dbStatus = status === 'approved' ? 'Disetujui' : 'Ditolak';
+    try {
+      await submissionService.verify(id, dbStatus, user.id);
+      refresh();
+      setSelectedRequest(null);
+      Swal.fire('Berhasil', `Pengajuan telah ${dbStatus.toLowerCase()}.`, 'success');
+    } catch (error) {
+      Swal.fire('Gagal', 'Gagal memproses verifikasi.', 'error');
+    }
+  };
 
   const handleDelete = async (id: string) => {
     const result = await Swal.fire({
@@ -256,11 +268,12 @@ const AdminPermissionMain: React.FC<AdminPermissionMainProps> = ({ user }) => {
 
       {/* Modal Detail */}
       {selectedRequest && (
-        <PermissionDetail 
+        <IzinDetailModalAdmin 
           request={mapToPermissionRequest(selectedRequest)}
-          user={user}
           onClose={() => setSelectedRequest(null)}
-          onUpdate={refresh}
+          onVerify={handleVerify}
+          onDelete={handleDelete}
+          canDelete={AdminMadeDeletion(selectedRequest)}
         />
       )}
 
