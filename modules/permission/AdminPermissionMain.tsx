@@ -1,184 +1,279 @@
 
-import React, { useState, useEffect } from 'react';
-import { Search, Calendar, Filter, Clock, CheckCircle2, XCircle, MessageSquare, ChevronRight, ClipboardList } from 'lucide-react';
+import React, { useState } from 'react';
+import { 
+  Search, 
+  Plus, 
+  Filter, 
+  Trash2, 
+  Clock, 
+  CheckCircle2, 
+  Calendar, 
+  XCircle, 
+  User,
+  ShieldCheck,
+  MessageSquare
+} from 'lucide-react';
+import { submissionService } from '../../services/submissionService';
 import { permissionService } from '../../services/permissionService';
-import { PermissionRequest, AuthUser } from '../../types';
+import { googleDriveService } from '../../services/googleDriveService';
+import { Submission, AuthUser, PermissionRequest } from '../../types';
+import { AdminMadeDeletion } from '../../lib/adminAuthHelper';
+import { MainButtonStyle } from '../../utils/mainButtonStyle';
+import Swal from 'sweetalert2';
 import PermissionDetail from './PermissionDetail';
+import PermissionForm from './PermissionForm';
+import Pagination from '../../components/Common/Pagination';
+
+import { useHRAdminSubmissionScheme } from '../../utils/hrAdminSubmissionScheme';
 
 interface AdminPermissionMainProps {
   user: AuthUser;
 }
 
 const AdminPermissionMain: React.FC<AdminPermissionMainProps> = ({ user }) => {
-  const [requests, setRequests] = useState<PermissionRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedRequest, setSelectedRequest] = useState<PermissionRequest | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  
-  useEffect(() => {
-    fetchRequests();
-  }, []);
+  const {
+    data: requests,
+    totalCount,
+    isLoading,
+    page,
+    setPage,
+    searchTerm,
+    setSearchTerm,
+    statusFilter,
+    handleSearch,
+    handleStatusChange: handleStatusFilterChange,
+    refresh,
+    pageSize: limit
+  } = useHRAdminSubmissionScheme('Izin', user);
 
-  const fetchRequests = async () => {
-    try {
-      setLoading(true);
-      const data = await permissionService.getAll();
-      setRequests(data);
-    } catch (error) {
-      console.error('Error fetching permissions:', error);
-    } finally {
-      setLoading(false);
+  const [selectedRequest, setSelectedRequest] = useState<Submission | null>(null);
+  const [showForm, setShowForm] = useState(false);
+
+  const handleDelete = async (id: string) => {
+    const result = await Swal.fire({
+      title: 'Hapus data?',
+      text: "Aksi ini tidak dapat dibatalkan.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      confirmButtonText: 'Ya, Hapus!'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await submissionService.delete(id);
+        refresh();
+        Swal.fire('Berhasil', 'Data telah dihapus.', 'success');
+      } catch (error) {
+        Swal.fire('Gagal', 'Gagal menghapus data.', 'error');
+      }
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'approved': return 'bg-emerald-50 text-emerald-600 border-emerald-100';
-      case 'rejected': return 'bg-rose-50 text-rose-600 border-rose-100';
-      case 'negotiating': return 'bg-amber-50 text-amber-600 border-amber-100';
-      case 'cancelled': return 'bg-gray-50 text-gray-500 border-gray-100';
-      default: return 'bg-blue-50 text-blue-600 border-blue-100';
+      case 'Disetujui':
+        return <span className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit"><CheckCircle2 size={10} /> Disetujui</span>;
+      case 'Ditolak':
+        return <span className="px-2 py-1 bg-rose-50 text-rose-600 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit"><XCircle size={10} /> Ditolak</span>;
+      case 'Negosiasi':
+        return <span className="px-2 py-1 bg-amber-50 text-amber-600 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit"><MessageSquare size={10} /> Negosiasi</span>;
+      default:
+        return <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit"><Clock size={10} /> Pending</span>;
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'approved': return <CheckCircle2 size={12} />;
-      case 'rejected': return <XCircle size={12} />;
-      case 'negotiating': return <MessageSquare size={12} />;
-      case 'cancelled': return <XCircle size={12} />;
-      default: return <Clock size={12} />;
-    }
+  // Helper to map submission to permission request structure for detail modal
+  const mapToPermissionRequest = (sub: Submission): PermissionRequest => {
+    return {
+      id: sub.submission_data?.permission_request_id || sub.id,
+      account_id: sub.account_id,
+      permission_type: sub.submission_data?.permission_type || 'Izin',
+      start_date: sub.submission_data?.start_date || '',
+      end_date: sub.submission_data?.end_date || sub.submission_data?.start_date || '',
+      description: sub.description || '',
+      status: sub.status === 'Disetujui' ? 'approved' : 
+              sub.status === 'Ditolak' ? 'rejected' : 
+              sub.status === 'Negosiasi' ? 'negotiating' : 
+              sub.status === 'Dibatalkan' ? 'cancelled' : 'pending',
+      file_id: sub.file_id || sub.submission_data?.file_id || null,
+      current_negotiator_role: (sub as any).submission_data?.current_negotiator_role || (sub.status === 'Negosiasi' ? 'admin' : 'user'),
+      negotiation_data: (sub as any).submission_data?.negotiation_data || [],
+      created_at: sub.created_at,
+      account: sub.account
+    };
   };
-
-  const filteredRequests = requests.filter(req => {
-    const matchesSearch = req.account?.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         req.account?.internal_nik.includes(searchTerm);
-    const matchesStatus = filterStatus === 'all' || req.status === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800 tracking-tight">Modul Izin</h2>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">
-            Manajemen Pengajuan Izin Karyawan
-          </p>
+      {/* Search & Filter Header Section */}
+      <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex items-center gap-4">
+          <div>
+            <h2 className="text-xl font-black text-gray-800 tracking-tight">Manajemen Izin Karyawan</h2>
+          </div>
         </div>
-      </div>
 
-      {/* Filters & Search */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="md:col-span-2 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input 
-            type="text"
-            placeholder="Cari nama atau NIK karyawan..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-white border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#006E62]/10 focus:border-[#006E62] transition-all text-sm font-medium"
-          />
-        </div>
-        <div className="relative">
-          <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+        <div className="flex flex-col sm:flex-row gap-4">
+          <form onSubmit={handleSearch} className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer" size={18} onClick={handleSearch} />
+            <input 
+              type="text"
+              placeholder="Cari nama atau NIK..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-12 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-[#006E62] w-full sm:w-64 transition-all"
+            />
+          </form>
           <select 
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-white border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#006E62]/10 focus:border-[#006E62] transition-all text-sm font-bold appearance-none uppercase tracking-widest"
+            value={statusFilter}
+            onChange={(e) => handleStatusFilterChange(e.target.value)}
+            className="px-6 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-xs font-black text-gray-600 outline-none focus:ring-2 focus:ring-[#006E62] transition-all uppercase tracking-widest"
           >
-            <option value="all">SEMUA STATUS</option>
-            <option value="pending">PENDING</option>
-            <option value="negotiating">NEGOSIASI</option>
-            <option value="approved">DISETUJUI</option>
-            <option value="rejected">DITOLAK</option>
-            <option value="cancelled">DIBATALKAN</option>
+            <option value="SEMUA STATUS">Semua Status</option>
+            <option value="Pending">Pending</option>
+            <option value="Negosiasi">Negosiasi</option>
+            <option value="Disetujui">Disetujui</option>
+            <option value="Ditolak">Ditolak</option>
           </select>
+          <button 
+            onClick={() => setShowForm(true)}
+            className={`${MainButtonStyle} !w-fit !px-6 !py-3 !text-xs !shadow-none`}
+          >
+             TAMBAH
+          </button>
         </div>
       </div>
 
-      {/* Content Section */}
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="w-12 h-12 border-4 border-[#006E62] border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Memuat data...</p>
-        </div>
-      ) : filteredRequests.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4">
-          {filteredRequests.map((req) => (
-            <div 
-              key={req.id}
-              onClick={() => setSelectedRequest(req)}
-              className="group bg-white border border-gray-100 p-5 rounded-2xl hover:shadow-xl hover:shadow-gray-200/50 transition-all cursor-pointer relative overflow-hidden"
-            >
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-start gap-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                    req.status === 'approved' ? 'bg-emerald-50 text-emerald-600' : 
-                    req.status === 'rejected' ? 'bg-rose-50 text-rose-600' : 'bg-gray-50 text-gray-400'
-                  }`}>
-                    <ClipboardList size={24} />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-bold text-gray-800">{req.permission_type}</span>
-                      <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-[8px] font-bold uppercase tracking-wider ${getStatusColor(req.status)}`}>
-                        {getStatusIcon(req.status)}
-                        {req.status}
+      {/* Table - Optimized Standard */}
+      <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-gray-50/50 border-b border-gray-100">
+                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Karyawan</th>
+                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Tanggal Pengajuan</th>
+                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Keterangan</th>
+                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Status</th>
+                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={5} className="px-8 py-20 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-10 h-10 border-4 border-[#006E62]/20 border-t-[#006E62] rounded-full animate-spin"></div>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Memuat Data...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : requests.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-8 py-20 text-center text-gray-400 italic text-xs font-medium">Tidak ada data yang ditemukan.</td>
+                </tr>
+              ) : (
+                requests.map((req) => (
+                  <tr 
+                    key={req.id} 
+                    onClick={() => setSelectedRequest(req)}
+                    className="hover:bg-gray-50/80 transition-all cursor-pointer group"
+                  >
+                    <td className="px-8 py-5">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full overflow-hidden bg-white shadow-sm border border-gray-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                          {req.account?.photo_google_id ? (
+                            <img 
+                              src={googleDriveService.getFileUrl(req.account.photo_google_id)} 
+                              alt={req.account.full_name}
+                              className="w-full h-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <User size={20} className="text-gray-300" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-xs font-black text-gray-800 leading-tight">{req.account?.full_name}</p>
+                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">{req.account?.internal_nik}</p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-[10px] font-bold text-[#006E62] uppercase tracking-widest mb-1">
-                      {req.account?.full_name} • {req.account?.internal_nik}
-                    </div>
-                    <div className="flex items-center gap-4 text-[10px] text-gray-400 font-medium">
-                      <div className="flex items-center gap-1">
-                        <Calendar size={12} />
-                        {new Date(req.start_date).toLocaleDateString('id-ID')} - {new Date(req.end_date).toLocaleDateString('id-ID')}
+                    </td>
+                    <td className="px-8 py-5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400">
+                          <Calendar size={14} />
+                        </div>
+                        <span className="text-xs font-bold text-gray-700">
+                          {req.submission_data?.start_date ? new Date(req.submission_data.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Clock size={12} />
-                        {new Date(req.created_at || '').toLocaleDateString('id-ID')}
+                    </td>
+                    <td className="px-8 py-5">
+                      <p className="text-xs text-gray-600 line-clamp-1 italic max-w-xs leading-relaxed">
+                        {req.description || '-'}
+                      </p>
+                    </td>
+                    <td className="px-8 py-5 text-center">
+                      <div className="flex justify-center">
+                        {getStatusBadge(req.status)}
                       </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-4">
-                  <div className="text-right hidden md:block">
-                    <div className="text-[9px] font-bold text-gray-300 uppercase tracking-widest mb-1">Giliran Respons</div>
-                    <div className={`text-[10px] font-bold uppercase ${
-                      req.current_negotiator_role === 'admin' ? 'text-amber-500' : 'text-gray-400'
-                    }`}>
-                      {req.current_negotiator_role === 'admin' ? 'ANDA' : req.current_negotiator_role}
-                    </div>
-                  </div>
-                  <ChevronRight size={20} className="text-gray-300 group-hover:text-[#006E62] group-hover:translate-x-1 transition-all" />
-                </div>
-              </div>
-              
-              {/* Progress bar for negotiation */}
-              <div className="absolute bottom-0 left-0 h-1 bg-[#006E62] transition-all duration-500" style={{ 
-                width: req.status === 'approved' ? '100%' : req.status === 'rejected' ? '100%' : '30%' 
-              }} />
-            </div>
-          ))}
+                    </td>
+                    <td className="px-8 py-5 text-right">
+                      <div className="flex justify-end items-center gap-3">
+                        {AdminMadeDeletion(req) && (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(req.id);
+                            }}
+                            className="p-2 text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-colors active:scale-90"
+                            title="Hapus Data Admin"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-20 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-          <ClipboardList size={48} className="text-gray-200 mb-4" />
-          <p className="text-sm font-medium text-gray-400">Tidak ada data pengajuan izin.</p>
-        </div>
-      )}
+      </div>
 
+      {/* Pagination Section */}
+      <div className="mt-8 bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden mb-8">
+        <Pagination
+          currentPage={page}
+          totalCount={totalCount}
+          pageSize={limit}
+          onPageChange={(p) => setPage(p)}
+          itemName="DATA PENGAJUAN"
+        />
+      </div>
+
+      {/* Modal Detail */}
       {selectedRequest && (
         <PermissionDetail 
-          request={selectedRequest}
+          request={mapToPermissionRequest(selectedRequest)}
           user={user}
           onClose={() => setSelectedRequest(null)}
-          onUpdate={fetchRequests}
+          onUpdate={refresh}
+        />
+      )}
+
+      {/* Modal Form Tambah (Admin) */}
+      {showForm && (
+        <PermissionForm 
+          accountId={user.id}
+          isAdmin={true}
+          onClose={() => setShowForm(false)}
+          onSuccess={() => {
+            setShowForm(false);
+            refresh();
+          }}
         />
       )}
     </div>

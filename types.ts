@@ -438,7 +438,7 @@ export interface DigitalDocument {
   created_by?: string;
 }
 
-export type SubmissionStatus = 'Pending' | 'Disetujui' | 'Ditolak' | 'Dibatalkan';
+export type SubmissionStatus = 'Pending' | 'Disetujui' | 'Ditolak' | 'Dibatalkan' | 'Negosiasi';
 
 export interface Submission {
   id: string;

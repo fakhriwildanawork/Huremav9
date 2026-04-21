@@ -1,12 +1,17 @@
-import React, { useState } from 'react';
-import { X, Save, Calendar, FileText, Upload, Info, ClipboardList } from 'lucide-react';
-import { PermissionRequestInput } from '../../types';
+import React, { useState, useEffect } from 'react';
+import { X, Save, Calendar, FileText, Upload, Info, ClipboardList, Loader2 } from 'lucide-react';
+import { PermissionRequestInput, Account } from '../../types';
 import { googleDriveService } from '../../services/googleDriveService';
+import Swal from 'sweetalert2';
+import { MainButtonStyle } from '../../utils/mainButtonStyle';
+import { CancelButtonStyle } from '../../utils/cancelButtonStyle';
 
 interface PermissionFormProps {
   accountId: string;
+  isAdmin?: boolean;
   onClose: () => void;
-  onSubmit: (data: PermissionRequestInput) => void;
+  onSuccess?: () => void;
+  onSubmit?: (data: PermissionRequestInput) => void;
 }
 
 const PERMISSION_TYPES = [
@@ -21,7 +26,13 @@ const PERMISSION_TYPES = [
   'Lainnya'
 ];
 
-const PermissionForm: React.FC<PermissionFormProps> = ({ accountId, onClose, onSubmit }) => {
+const PermissionForm: React.FC<PermissionFormProps> = ({ 
+  accountId, 
+  isAdmin = false,
+  onClose, 
+  onSuccess,
+  onSubmit 
+}) => {
   const [formData, setFormData] = useState<PermissionRequestInput>({
     account_id: accountId,
     permission_type: PERMISSION_TYPES[0],
@@ -31,7 +42,22 @@ const PermissionForm: React.FC<PermissionFormProps> = ({ accountId, onClose, onS
     file_id: null
   });
 
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loadingAccounts, setLoadingAccounts] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isAdmin) {
+      setLoadingAccounts(true);
+      import('../../services/accountService').then(({ accountService }) => {
+        accountService.getAll().then(data => {
+          setAccounts(data as Account[]);
+          setLoadingAccounts(false);
+        });
+      });
+    }
+  }, [isAdmin]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -47,123 +73,177 @@ const PermissionForm: React.FC<PermissionFormProps> = ({ accountId, onClose, onS
       const fileId = await googleDriveService.uploadFile(file);
       setFormData(prev => ({ ...prev, file_id: fileId }));
     } catch (error) {
-      alert('Gagal mengunggah file.');
+      Swal.fire('Gagal', 'Gagal mengunggah file.', 'error');
     } finally {
       setUploading(false);
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (new Date(formData.start_date) > new Date(formData.end_date)) {
-      alert('Tanggal awal tidak boleh lebih besar dari tanggal akhir.');
+      Swal.fire('Peringatan', 'Tanggal awal tidak boleh lebih besar dari tanggal akhir.', 'warning');
       return;
     }
-    onSubmit(formData);
+
+    if (isAdmin && !formData.account_id) {
+      Swal.fire('Peringatan', 'Pilih karyawan terlebih dahulu.', 'warning');
+      return;
+    }
+
+    if (onSuccess) {
+      try {
+        setSubmitting(true);
+        const { permissionService } = await import('../../services/permissionService');
+        await permissionService.create(formData, isAdmin ? 'approved' : 'pending', accountId);
+        onSuccess();
+        Swal.fire({
+          title: 'Berhasil',
+          text: isAdmin ? 'Data berhasil ditambahkan.' : 'Pengajuan Anda telah dikirim.',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false
+        });
+      } catch (error) {
+        Swal.fire('Gagal', 'Terjadi kesalahan saat menyimpan data.', 'error');
+      } finally {
+        setSubmitting(false);
+      }
+    } else if (onSubmit) {
+      onSubmit(formData);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200">
-        <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
-          <div className="flex items-center gap-2">
-            <ClipboardList size={18} className="text-[#006E62]" />
-            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-tight">Form Pengajuan Izin</h3>
+    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-300">
+      <div className="bg-white w-full max-h-[95vh] sm:max-w-lg rounded-t-[32px] sm:rounded-[32px] shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-10 duration-500">
+        <div className="px-8 py-5 border-b border-gray-50 flex items-center justify-between bg-gray-50/50 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#006E62]/10 rounded-xl flex items-center justify-center text-[#006E62]">
+              <ClipboardList size={20} />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-gray-800 tracking-tight">Form Pengajuan Izin</h3>
+              <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest leading-tight">
+                {isAdmin ? 'Manual Input oleh Admin' : 'Pengajuan Mandiri'}
+              </p>
+            </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
-            <X size={20} />
+          <button onClick={onClose} className="w-8 h-8 bg-gray-100 text-gray-400 rounded-full flex items-center justify-center active:scale-90 transition-all">
+            <X size={18} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Jenis Izin</label>
-            <select
-              name="permission_type"
-              value={formData.permission_type}
-              onChange={handleChange}
-              className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#006E62]/20 focus:border-[#006E62] text-xs font-bold"
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
+            {isAdmin && (
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Pilih Karyawan (*)</label>
+                <select
+                  required
+                  name="account_id"
+                  value={formData.account_id || ''}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-[#006E62] transition-all"
+                >
+                  <option value="">-- Pilih Karyawan --</option>
+                  {accounts.map(acc => (
+                    <option key={acc.id} value={acc.id}>{acc.full_name} ({acc.internal_nik})</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Jenis Izin (*)</label>
+              <select
+                required
+                name="permission_type"
+                value={formData.permission_type}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-[#006E62] transition-all"
+              >
+                {PERMISSION_TYPES.map(type => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Tanggal Awal</label>
+                <input 
+                  required
+                  type="date" 
+                  name="start_date" 
+                  value={formData.start_date} 
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-800 outline-none focus:ring-2 focus:ring-[#006E62] transition-all"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Tanggal Akhir</label>
+                <input 
+                  required
+                  type="date" 
+                  name="end_date" 
+                  value={formData.end_date} 
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-800 outline-none focus:ring-2 focus:ring-[#006E62] transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px) font-black text-gray-400 uppercase tracking-widest ml-1">Keterangan / Alasan (*)</label>
+              <textarea 
+                required
+                name="description" 
+                value={formData.description} 
+                onChange={handleChange}
+                rows={3}
+                placeholder="Jelaskan detail keperluan izin..."
+                className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium text-gray-700 outline-none focus:ring-2 focus:ring-[#006E62] transition-all resize-none"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Lampiran (Opsional)</label>
+              <div className="flex items-center gap-3">
+                <label className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 bg-gray-50 border border-dashed border-gray-200 rounded-2xl cursor-pointer hover:bg-gray-100 transition-all group overflow-hidden">
+                  <Upload size={16} className="text-gray-400 group-hover:text-[#006E62]" />
+                  <span className="text-[10px] font-bold text-gray-500 uppercase truncate">
+                    {formData.file_id ? 'File Terunggah' : 'Pilih Gambar/PDF'}
+                  </span>
+                  <input type="file" className="hidden" accept="image/*,application/pdf" onChange={handleFileUpload} />
+                </label>
+                {uploading && <Loader2 size={16} className="text-[#006E62] animate-spin" />}
+              </div>
+            </div>
+
+            <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl flex gap-3 items-start">
+              <Info size={16} className="text-blue-500 shrink-0 mt-0.5" />
+              <p className="text-[9px] text-blue-700 leading-relaxed font-bold uppercase">
+                Pengajuan izin ini tidak memotong jatah cuti tahunan Anda. Admin dapat menyetujui, menolak, atau menawarkan negosiasi tanggal jika diperlukan.
+              </p>
+            </div>
+          </div>
+
+          <div className="p-8 border-t border-gray-50 bg-white space-y-2 shrink-0">
+            <button 
+              type="submit"
+              disabled={uploading || submitting}
+              className={MainButtonStyle}
             >
-              {PERMISSION_TYPES.map(type => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Tanggal Awal</label>
-              <input 
-                required
-                type="date" 
-                name="start_date" 
-                value={formData.start_date} 
-                onChange={handleChange}
-                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#006E62]/20 focus:border-[#006E62] text-xs font-bold"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Tanggal Akhir</label>
-              <input 
-                required
-                type="date" 
-                name="end_date" 
-                value={formData.end_date} 
-                onChange={handleChange}
-                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#006E62]/20 focus:border-[#006E62] text-xs font-bold"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Keterangan</label>
-            <textarea 
-              required
-              name="description" 
-              value={formData.description} 
-              onChange={handleChange}
-              rows={3}
-              placeholder="Jelaskan detail keperluan izin Anda..."
-              className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#006E62]/20 focus:border-[#006E62] text-xs font-medium resize-none"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Dokumen Pendukung (Opsional)</label>
-            <div className="flex items-center gap-3">
-              <label className="flex-1 flex items-center gap-2 px-4 py-2.5 bg-gray-50 border border-dashed border-gray-200 rounded-xl cursor-pointer hover:bg-gray-100 transition-all group overflow-hidden">
-                <Upload size={16} className="text-gray-400 group-hover:text-[#006E62]" />
-                <span className="text-[10px] font-bold text-gray-500 uppercase truncate">
-                  {formData.file_id ? 'File Terunggah' : 'Pilih Gambar/PDF'}
-                </span>
-                <input type="file" className="hidden" accept="image/*,application/pdf" onChange={handleFileUpload} />
-              </label>
-              {uploading && <div className="w-5 h-5 border-2 border-[#006E62] border-t-transparent rounded-full animate-spin"></div>}
-            </div>
-          </div>
-
-          <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl flex gap-3 items-start">
-            <Info size={16} className="text-blue-500 shrink-0 mt-0.5" />
-            <p className="text-[9px] text-blue-700 leading-relaxed font-medium">
-              Pengajuan izin ini tidak memotong jatah cuti tahunan Anda. Admin dapat menyetujui, menolak, atau menawarkan negosiasi tanggal jika diperlukan.
-            </p>
-          </div>
-
-          <div className="flex gap-3 pt-2">
+              {submitting ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+              {submitting ? 'Memproses...' : isAdmin ? 'Tambahkan Data' : 'Kirim Pengajuan'}
+            </button>
             <button 
               type="button" 
               onClick={onClose}
-              className="flex-1 py-3 border border-gray-100 text-gray-400 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-gray-50 transition-all"
+              className={CancelButtonStyle}
             >
               Batal
-            </button>
-            <button 
-              type="submit"
-              disabled={uploading}
-              className="flex-2 py-3 bg-[#006E62] text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-[#005a50] shadow-lg shadow-[#006E62]/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              <Save size={16} />
-              Kirim Pengajuan
             </button>
           </div>
         </form>
