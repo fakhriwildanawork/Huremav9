@@ -1,8 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, Calendar, AlertCircle, Upload, Trash2, Loader2, FileUp, ArrowLeft } from 'lucide-react';
+import { X, Save, Calendar, AlertCircle, Upload, Trash2, Loader2, FileUp, ArrowLeft, Search, ChevronDown } from 'lucide-react';
 import { LeaveRequestInput, Account, LeaveRequest, AuthUser } from '../../types';
 import { accountService } from '../../services/accountService';
+import { accountFilterHelper } from '../../utils/accountFilterHelper';
+import AccountListItem from '../../components/Common/AccountListItem';
 import { leaveService } from '../../services/leaveService';
 import { googleDriveService } from '../../services/googleDriveService';
 import { formatDateID } from '../../utils/dateFormatter';
@@ -39,7 +41,16 @@ const LeaveMandiriFormPage: React.FC<LeaveMandiriFormPageProps> = ({
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loadingAccounts, setLoadingAccounts] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showEmployeeList, setShowEmployeeList] = useState(false);
   
+  const displayAccounts = accountFilterHelper.filter(accounts, user, 'isolasi');
+  const selectedEmployee = accounts.find(acc => acc.id === formData.account_id);
+  const filteredAccounts = displayAccounts.filter(acc => 
+    acc.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    acc.internal_nik.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   // File upload state
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -61,9 +72,7 @@ const LeaveMandiriFormPage: React.FC<LeaveMandiriFormPageProps> = ({
       setLoadingAccounts(true);
       accountService.getAll()
         .then(data => {
-          const today = new Date().toISOString().split('T')[0];
-          const active = (data as Account[]).filter(acc => !acc.end_date || acc.end_date > today);
-          setAccounts(active);
+          setAccounts(data as Account[]);
         })
         .finally(() => setLoadingAccounts(false));
     }
@@ -126,6 +135,21 @@ const LeaveMandiriFormPage: React.FC<LeaveMandiriFormPageProps> = ({
       } else {
         await leaveService.create(submissionData);
       }
+
+      // Cleanup logic if it's a re-submission of a rejected request
+      if (editData && editData.status === 'rejected') {
+        try {
+          // Delete old record and associated submissions
+          await leaveService.delete(editData.id);
+          // Delete old file from Google Drive if it exists
+          if (editData.file_id) {
+            await googleDriveService.deleteFile(editData.file_id);
+          }
+        } catch (cleanupError) {
+          console.warn('Silent cleanup error:', cleanupError);
+        }
+      }
+
       onSuccess();
       Swal.fire({
         title: 'Berhasil',
@@ -180,18 +204,54 @@ const LeaveMandiriFormPage: React.FC<LeaveMandiriFormPageProps> = ({
           {isAdmin && (
             <div className="space-y-2">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Pilih Karyawan (*)</label>
-              <select 
-                required 
-                name="account_id" 
-                value={formData.account_id} 
-                onChange={handleChange} 
-                className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-[#006E62] transition-all"
-              >
-                <option value="">-- Pilih Karyawan --</option>
-                {accounts.map(acc => (
-                  <option key={acc.id} value={acc.id}>{acc.full_name} ({acc.internal_nik})</option>
-                ))}
-              </select>
+              
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowEmployeeList(!showEmployeeList)}
+                  className="w-full flex items-center justify-between px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-[#006E62] transition-all"
+                >
+                  <span>{selectedEmployee ? selectedEmployee.full_name : '-- Pilih Karyawan --'}</span>
+                  <ChevronDown size={16} className={`transition-transform duration-200 ${showEmployeeList ? 'rotate-180' : ''}`} />
+                </button>
+
+                {showEmployeeList && (
+                  <div className="absolute top-full left-0 right-0 z-[110] mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[300px] animate-in slide-in-from-top-2 duration-200">
+                    <div className="p-3 border-b border-gray-50 bg-gray-50/50">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                        <input
+                          type="text"
+                          placeholder="Cari nama atau NIK..."
+                          className="w-full pl-9 pr-4 py-2 bg-white border border-gray-100 rounded-xl text-xs font-medium outline-none focus:ring-1 focus:ring-[#006E62]"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+                      {loadingAccounts ? (
+                        <div className="py-8 flex justify-center"><Loader2 size={16} className="animate-spin text-[#006E62]" /></div>
+                      ) : filteredAccounts.length === 0 ? (
+                        <div className="py-8 text-center text-[10px] font-bold text-gray-400 uppercase">Karyawan tidak ditemukan</div>
+                      ) : (
+                        filteredAccounts.map(acc => (
+                          <AccountListItem
+                            key={acc.id}
+                            account={acc}
+                            isSelected={formData.account_id === acc.id}
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, account_id: acc.id }));
+                              setShowEmployeeList(false);
+                            }}
+                          />
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
