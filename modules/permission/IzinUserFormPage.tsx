@@ -184,7 +184,7 @@ const IzinUserFormPage: React.FC<IzinUserFormPageProps> = ({
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-5">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Mulai Tgl</label>
                 <input 
@@ -193,7 +193,7 @@ const IzinUserFormPage: React.FC<IzinUserFormPageProps> = ({
                   name="start_date" 
                   value={formData.start_date} 
                   onChange={handleChange} 
-                  className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-xs font-black text-gray-800 outline-none focus:ring-2 focus:ring-[#006E62] transition-all"
+                  className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-[13px] font-black text-gray-800 outline-none focus:ring-2 focus:ring-[#006E62] transition-all text-center [&::-webkit-calendar-picker-indicator]:hidden"
                 />
               </div>
               <div className="space-y-2">
@@ -204,7 +204,7 @@ const IzinUserFormPage: React.FC<IzinUserFormPageProps> = ({
                   name="end_date" 
                   value={formData.end_date} 
                   onChange={handleChange} 
-                  className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-xs font-black text-gray-800 outline-none focus:ring-2 focus:ring-[#006E62] transition-all"
+                  className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-[13px] font-black text-gray-800 outline-none focus:ring-2 focus:ring-[#006E62] transition-all text-center [&::-webkit-calendar-picker-indicator]:hidden"
                 />
               </div>
             </div>
