@@ -15,11 +15,8 @@ import {
   Eye,
   Info,
   ArrowRight,
-  History,
   User,
-  MessageSquare,
-  ShieldCheck,
-  ChevronRight
+  ShieldCheck
 } from 'lucide-react';
 
 interface IzinDetailModalUserProps {
@@ -35,7 +32,6 @@ const IzinDetailModalUser: React.FC<IzinDetailModalUserProps> = ({
 }) => {
   const [verifierInfo, setVerifierInfo] = useState<any>(null);
   const [isLoadingVerifier, setIsLoadingVerifier] = useState(false);
-  const [selectedNegoItem, setSelectedNegoItem] = useState<any>(null);
 
   useEffect(() => {
     if (request.id) {
@@ -59,7 +55,6 @@ const IzinDetailModalUser: React.FC<IzinDetailModalUserProps> = ({
     switch (status) {
       case 'approved': return 'bg-emerald-500/10 text-emerald-500';
       case 'rejected': return 'bg-rose-500/10 text-rose-500';
-      case 'negotiating': return 'bg-amber-500/10 text-amber-500';
       case 'cancelled': return 'bg-gray-500/10 text-gray-500';
       default: return 'bg-blue-500/10 text-blue-500';
     }
@@ -69,19 +64,9 @@ const IzinDetailModalUser: React.FC<IzinDetailModalUserProps> = ({
     switch (status) {
       case 'approved': return 'Disetujui';
       case 'rejected': return 'Ditolak';
-      case 'negotiating': return 'Negosiasi';
       case 'cancelled': return 'Dibatalkan';
       default: return 'Pending';
     }
-  };
-
-  const getNegoStatusLabel = (nego: any, isLast: boolean) => {
-    if (isLast) {
-      if (request.status === 'approved') return 'Setuju';
-      if (request.status === 'rejected') return 'Tolak';
-      if (request.status === 'cancelled') return 'Batal';
-    }
-    return 'Nego';
   };
 
   const formatDateCustom = (dateStr: string) => {
@@ -132,14 +117,13 @@ const IzinDetailModalUser: React.FC<IzinDetailModalUserProps> = ({
           <div className="flex items-center justify-between bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
              <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${getStatusBadgeColor(request.status)}`}>
-                  {request.status === 'approved' ? <CheckCircle2 size={20} /> : request.status === 'rejected' ? <XCircle size={20} /> : request.status === 'negotiating' ? <MessageSquare size={20} /> : <Clock size={20} />}
+                  {request.status === 'approved' ? <CheckCircle2 size={20} /> : request.status === 'rejected' ? <XCircle size={20} /> : <Clock size={20} />}
                 </div>
                 <div>
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</p>
                   <p className={`text-sm font-black uppercase tracking-wide ${
                     request.status === 'approved' ? 'text-emerald-600' :
                     request.status === 'rejected' ? 'text-rose-600' :
-                    request.status === 'negotiating' ? 'text-amber-600' :
                     'text-blue-600'
                   }`}>
                     {getStatusLabel(request.status)}
@@ -223,90 +207,44 @@ const IzinDetailModalUser: React.FC<IzinDetailModalUserProps> = ({
             </div>
           )}
 
-          {/* Negotiation History / Tektokan Timeline */}
-          {request.negotiation_data && request.negotiation_data.length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-2">
-                 <div className="w-1 h-4 bg-[#006E62] rounded-full"></div>
-                 <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Histori Tektokan</h4>
-              </div>
-              <div className="space-y-4 relative before:absolute before:left-5 before:top-2 before:bottom-2 before:w-px before:bg-gray-100 px-1">
-                {request.negotiation_data.map((nego, idx) => {
-                  const isLast = idx === request.negotiation_data!.length - 1;
-                  const displayName = nego.role === 'admin' 
-                    ? (verifierInfo?.verifier?.full_name || 'Administrator') 
-                    : user.full_name;
-                  const statusLabel = getNegoStatusLabel(nego, isLast);
-
-                  return (
-                    <div key={idx} className="relative pl-10">
-                      <div className={`absolute left-3 top-1 w-4 h-4 rounded-full border-2 border-white shadow-sm flex items-center justify-center ${nego.role === 'admin' ? 'bg-[#006E62]' : 'bg-blue-500'}`}>
-                        {nego.role === 'admin' ? <ShieldCheck size={8} className="text-white" /> : <User size={8} className="text-white" />}
-                      </div>
-                      <button 
-                        onClick={() => setSelectedNegoItem({ ...nego, displayName, statusLabel })}
-                        className="w-full text-left bg-white border border-gray-100 p-4 rounded-2xl shadow-sm space-y-1 active:scale-[0.98] transition-all group"
-                      >
-                         {/* Line 1: Username (Left) */}
-                         <div className="flex justify-between items-center">
-                            <span className={`text-[10px] font-black uppercase tracking-widest ${nego.role === 'admin' ? 'text-[#006E62]' : 'text-blue-500'} truncate mr-2`}>
-                              {displayName}
-                            </span>
-                            <ChevronRight size={14} className="text-gray-300 group-hover:text-gray-500 transition-colors" />
-                         </div>
-
-                         {/* Line 2: Start - End Date (Left) */}
-                         <div className="text-[10px] font-bold text-gray-700">
-                            {formatDateCustom(nego.start_date)} - {formatDateCustom(nego.end_date)}
-                         </div>
-
-                         {/* Line 3: DateTime (Left) | Label Status (Right) */}
-                         <div className="flex justify-between items-end mt-1">
-                            <span className="text-[9px] text-gray-400 font-bold uppercase tracking-tight">
-                              {formatDateCustom(nego.timestamp)} • {new Date(nego.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                            <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest ${
-                              statusLabel === 'Setuju' ? 'bg-emerald-50 text-emerald-600' :
-                              statusLabel === 'Tolak' ? 'bg-rose-50 text-rose-600' :
-                              statusLabel === 'Batal' ? 'bg-gray-50 text-gray-500' :
-                              'bg-amber-50 text-amber-600'
-                            }`}>
-                              {statusLabel}
-                            </span>
-                         </div>
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
           {/* Verifier Info (Bottom) */}
           {verifierInfo && (
-            <div className="space-y-4 pt-4">
-               <div className="flex items-center gap-2 mb-2">
-                  <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
-                  <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Diverifikasi Oleh</h4>
+            <div className="space-y-4 pt-4 animate-in fade-in slide-in-from-bottom duration-500">
+               <div className="flex items-center gap-2 mb-2 px-1">
+                  <ShieldCheck size={16} className="text-emerald-600" />
+                  <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Informasi Verifikasi</h4>
                </div>
-               <div className="bg-emerald-50/30 border border-emerald-100/50 p-4 rounded-2xl flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white bg-emerald-100 flex items-center justify-center shrink-0">
-                    {verifierInfo.verifier?.photo_google_id ? (
-                      <img 
-                        src={getPhotoUrl(verifierInfo.verifier.photo_google_id) || ''} 
-                        className="w-full h-full object-cover" 
-                        alt="" 
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <User size={24} className="text-emerald-600" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-sm font-black text-gray-800 leading-tight">{verifierInfo.verifier?.full_name || 'Administrator'}</p>
-                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">
-                      {formatDateCustom(verifierInfo.verified_at)} • {new Date(verifierInfo.verified_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                    </p>
+               
+               <div className="bg-emerald-50/30 border border-emerald-100/50 rounded-2xl overflow-hidden">
+                  <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-full overflow-hidden border-4 border-white bg-emerald-100 flex items-center justify-center shrink-0 shadow-sm">
+                        {verifierInfo.verifier?.photo_google_id ? (
+                          <img 
+                            src={getPhotoUrl(verifierInfo.verifier.photo_google_id) || ''} 
+                            className="w-full h-full object-cover" 
+                            alt="" 
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <User size={28} className="text-emerald-600" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-emerald-600/50 uppercase tracking-[0.2em] mb-0.5">Verifikator</p>
+                        <p className="text-sm font-black text-gray-800 leading-tight">{verifierInfo.verifier?.full_name || 'Administrator'}</p>
+                        <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-tight">
+                          {formatDateCustom(verifierInfo.verified_at)} • {new Date(verifierInfo.verified_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 border-t md:border-t-0 md:border-l border-emerald-100/50 pt-4 md:pt-0 md:pl-6 min-h-[50px] flex flex-col justify-center">
+                      <p className="text-[10px] font-black text-emerald-600/50 uppercase tracking-[0.2em]">Catatan / Alasan Verifikasi</p>
+                      <p className="text-xs text-gray-600 italic leading-relaxed font-medium">
+                        "{verifierInfo.verification_notes || (request.status === 'approved' ? 'Disetujui tanpa catatan tambahan.' : 'Ditolak tanpa catatan tambahan.')}"
+                      </p>
+                    </div>
                   </div>
                </div>
             </div>
@@ -323,67 +261,6 @@ const IzinDetailModalUser: React.FC<IzinDetailModalUserProps> = ({
           </button>
         </div>
       </div>
-
-      {/* Sub-modal: Tektokan Detail Popup */}
-      {selectedNegoItem && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-6 backdrop-blur-md animate-in fade-in duration-200">
-           <div className="bg-white w-full max-w-sm rounded-[24px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[80vh]">
-              {/* Header */}
-              <div className="p-6 flex justify-between items-start border-b border-gray-50">
-                <div className="space-y-1">
-                   <h3 className="text-base font-black text-gray-800 leading-tight truncate max-w-[200px]">{selectedNegoItem.displayName}</h3>
-                   <div className="flex items-center gap-2">
-                      <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest ${
-                        selectedNegoItem.statusLabel === 'Setuju' ? 'bg-emerald-50 text-emerald-600' :
-                        selectedNegoItem.statusLabel === 'Tolak' ? 'bg-rose-50 text-rose-600' :
-                        'bg-amber-50 text-amber-600'
-                      }`}>
-                        {selectedNegoItem.statusLabel}
-                      </span>
-                      <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">
-                        {formatDateCustom(selectedNegoItem.timestamp)} • {new Date(selectedNegoItem.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                   </div>
-                </div>
-                <button 
-                  onClick={() => setSelectedNegoItem(null)}
-                  className="w-8 h-8 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center active:scale-90 transition-all"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-
-              {/* Scrollable Content */}
-              <div className="flex-1 p-6 space-y-4 overflow-y-auto custom-scrollbar">
-                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
-                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Tanggal Diajukan</p>
-                   <div className="flex items-center gap-2 text-xs font-black text-gray-700">
-                      <span>{formatDateCustom(selectedNegoItem.start_date)}</span>
-                      <ArrowRight size={12} className="text-gray-300" />
-                      <span>{formatDateCustom(selectedNegoItem.end_date)}</span>
-                   </div>
-                </div>
-
-                <div className="space-y-2 px-1">
-                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Keterangan / Alasan</p>
-                   <p className="text-sm text-gray-600 leading-relaxed italic break-words whitespace-pre-wrap">
-                      "{selectedNegoItem.reason || 'Tidak ada keterangan.'}"
-                   </p>
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="p-6 pt-0">
-                <button 
-                  onClick={() => setSelectedNegoItem(null)}
-                  className="w-full py-4 bg-gray-800 text-white rounded-2xl text-xs font-black uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-gray-200"
-                >
-                  Kembali
-                </button>
-              </div>
-           </div>
-        </div>
-      )}
     </div>
   );
 };

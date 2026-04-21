@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Calendar, FileText, Upload, Info, ClipboardList, Loader2, Search, ChevronDown } from 'lucide-react';
-import { PermissionRequestInput, Account, AuthUser } from '../../types';
+import { PermissionRequestInput, Account, AuthUser, PermissionRequest } from '../../types';
 import { googleDriveService } from '../../services/googleDriveService';
 import { authService } from '../../services/authService';
 import { accountFilterHelper } from '../../utils/accountFilterHelper';
@@ -15,6 +15,7 @@ interface PermissionFormProps {
   onClose: () => void;
   onSuccess?: () => void;
   onSubmit?: (data: PermissionRequestInput) => void;
+  editData?: PermissionRequest | null;
 }
 
 const PERMISSION_TYPES = [
@@ -29,7 +30,8 @@ const PermissionForm: React.FC<PermissionFormProps> = ({
   isAdmin = false,
   onClose, 
   onSuccess,
-  onSubmit 
+  onSubmit,
+  editData
 }) => {
   const [formData, setFormData] = useState<PermissionRequestInput>({
     account_id: accountId,
@@ -37,7 +39,7 @@ const PermissionForm: React.FC<PermissionFormProps> = ({
     start_date: new Date().toISOString().split('T')[0],
     end_date: new Date().toISOString().split('T')[0],
     description: '',
-    file_id: null
+    file_id: editData?.file_id || null
   });
 
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -54,6 +56,19 @@ const PermissionForm: React.FC<PermissionFormProps> = ({
     acc.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     acc.internal_nik.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  useEffect(() => {
+    if (editData) {
+      setFormData({
+        account_id: editData.account_id,
+        permission_type: editData.permission_type,
+        start_date: editData.start_date,
+        end_date: editData.end_date,
+        description: editData.description || '',
+        file_id: editData.file_id || null
+      });
+    }
+  }, [editData]);
 
   useEffect(() => {
     setCurrentUser(authService.getCurrentUser());
@@ -108,10 +123,23 @@ const PermissionForm: React.FC<PermissionFormProps> = ({
         setSubmitting(true);
         const { permissionService } = await import('../../services/permissionService');
         await permissionService.create(formData, isAdmin ? 'approved' : 'pending', accountId);
+
+        // Cleanup logic for re-submission of rejected requests
+        if (editData && editData.status === 'rejected') {
+          try {
+            await permissionService.delete(editData.id);
+            if (editData.file_id) {
+              await googleDriveService.deleteFile(editData.file_id);
+            }
+          } catch (cleanupError) {
+            console.warn('Silent cleanup error:', cleanupError);
+          }
+        }
+
         onSuccess();
         Swal.fire({
           title: 'Berhasil',
-          text: isAdmin ? 'Data berhasil ditambahkan.' : 'Pengajuan Anda telah dikirim.',
+          text: isAdmin ? 'Data berhasil ditambahkan.' : (editData ? 'Pengajuan ulang telah dikirim.' : 'Pengajuan Anda telah dikirim.'),
           icon: 'success',
           timer: 2000,
           showConfirmButton: false
@@ -135,7 +163,9 @@ const PermissionForm: React.FC<PermissionFormProps> = ({
               <ClipboardList size={20} />
             </div>
             <div>
-              <h3 className="text-sm font-black text-gray-800 tracking-tight">Form Pengajuan Izin</h3>
+              <h3 className="text-sm font-black text-gray-800 tracking-tight">
+                {editData ? 'Ajukan Ulang Izin' : 'Form Pengajuan Izin'}
+              </h3>
               <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest leading-tight">
                 {isAdmin ? 'Manual Input oleh Admin' : 'Pengajuan Mandiri'}
               </p>

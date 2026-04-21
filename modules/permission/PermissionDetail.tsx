@@ -13,32 +13,22 @@ interface PermissionDetailProps {
 }
 
 const PermissionDetail: React.FC<PermissionDetailProps> = ({ request, user, onClose, onUpdate }) => {
-  const [isNegotiating, setIsNegotiating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [negoData, setNegoData] = useState({
-    start_date: request.start_date,
-    end_date: request.end_date,
-    reason: ''
-  });
 
   const isAdmin = user?.role === 'admin' || user?.is_hr_admin || user?.is_performance_admin || user?.is_finance_admin;
-  const isMyTurn = request.current_negotiator_role === (isAdmin ? 'admin' : 'user');
+  const isPending = request.status === 'pending';
   const isClosed = ['approved', 'rejected', 'cancelled'].includes(request.status);
 
-  const handleAction = async (status: 'negotiating' | 'approved' | 'rejected' | 'cancelled', reason?: string) => {
+  const handleAction = async (status: 'approved' | 'rejected' | 'cancelled') => {
     try {
       setIsSaving(true);
-      await permissionService.negotiate(
+      await permissionService.updateStatus(
         request.id,
-        isAdmin ? 'admin' : 'user',
-        negoData.start_date,
-        negoData.end_date,
-        reason || negoData.reason || (status === 'approved' ? 'Disetujui' : status === 'rejected' ? 'Ditolak' : 'Dibatalkan'),
         status
       );
       Swal.fire({
         title: 'Berhasil!',
-        text: `Status pengajuan telah diperbarui menjadi ${status}.`,
+        text: `Status pengajuan telah diperbarui menjadi ${status === 'approved' ? 'Disetujui' : status === 'rejected' ? 'Ditolak' : 'Dibatalkan'}.`,
         icon: 'success',
         timer: 1500,
         showConfirmButton: false
@@ -122,139 +112,61 @@ const PermissionDetail: React.FC<PermissionDetailProps> = ({ request, user, onCl
               <div className="p-4 bg-amber-50/50 border border-amber-100 rounded-2xl">
                 <div className="flex items-center gap-2 mb-2 text-amber-600">
                   <Clock size={14} />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">Giliran Respons</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest">Status Pengajuan</span>
                 </div>
                 <div className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">
-                  {isClosed ? 'NEGOSIASI SELESAI' : (isMyTurn ? 'GILIRAN ANDA' : `MENUNGGU ${request.current_negotiator_role.toUpperCase()}`)}
+                  {request.status === 'pending' ? 'MENUNGGU PERSETUJUAN' : request.status.toUpperCase()}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Riwayat Negosiasi */}
+          {/* Detail Alasan */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 px-1">
-              <History size={16} className="text-gray-400" />
-              <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Riwayat Negosiasi</h4>
+              <FileText size={16} className="text-gray-400" />
+              <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Keterangan / Alasan</h4>
             </div>
-            
-            <div className="space-y-4 relative before:absolute before:left-4 before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-50">
-              {request.negotiation_data.map((nego, idx) => (
-                <div key={idx} className="relative pl-10">
-                  <div className={`absolute left-2 top-1 w-4 h-4 rounded-full border-2 border-white shadow-sm ${nego.role === 'admin' ? 'bg-[#006E62]' : 'bg-blue-500'}`}></div>
-                  <div className="bg-white border border-gray-100 p-4 rounded-2xl shadow-sm space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className={`text-[9px] font-bold uppercase tracking-widest ${nego.role === 'admin' ? 'text-[#006E62]' : 'text-blue-500'}`}>
-                        {nego.role === 'admin' ? 'ADMINISTRATOR' : 'KARYAWAN'}
-                      </span>
-                      <span className="text-[8px] text-gray-300 font-bold">{new Date(nego.timestamp).toLocaleString('id-ID')}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-[11px] font-bold text-gray-700">
-                      <span>{new Date(nego.start_date).toLocaleDateString('id-ID')}</span>
-                      <ArrowRight size={10} className="text-gray-300" />
-                      <span>{new Date(nego.end_date).toLocaleDateString('id-ID')}</span>
-                    </div>
-                    <p className="text-[11px] text-gray-500 italic leading-relaxed">"{nego.reason}"</p>
-                  </div>
-                </div>
-              ))}
+            <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100">
+              <p className="text-sm text-gray-700 leading-relaxed italic">
+                "{request.description}"
+              </p>
             </div>
           </div>
 
-          {/* Panel Aksi Negosiasi */}
-          {isMyTurn && !isClosed && (
+          {/* Panel Aksi */}
+          {!isClosed && (
             <div className="pt-6 border-t border-gray-100 animate-in fade-in slide-in-from-top duration-500">
-              {!isNegotiating ? (
-                <div className="flex flex-wrap gap-3">
-                  {isAdmin ? (
-                    <>
-                      <button 
-                        onClick={() => handleAction('approved')}
-                        className="flex-1 flex items-center justify-center gap-2 bg-[#006E62] text-white py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-[#005a50] shadow-lg shadow-[#006E62]/20 transition-all"
-                      >
-                        <CheckCircle2 size={16} /> Langsung Setujui
-                      </button>
-                      <button 
-                        onClick={() => setIsNegotiating(true)}
-                        className="flex-1 flex items-center justify-center gap-2 bg-amber-500 text-white py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-amber-600 shadow-lg shadow-amber-500/20 transition-all"
-                      >
-                        <MessageSquare size={16} /> Nego Tanggal
-                      </button>
-                      <button 
-                        onClick={() => handleAction('rejected')}
-                        className="flex-1 flex items-center justify-center gap-2 bg-rose-500 text-white py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-rose-600 shadow-lg shadow-rose-500/20 transition-all"
-                      >
-                        <XCircle size={16} /> Tolak Izin
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button 
-                        onClick={() => handleAction('approved')}
-                        className="flex-1 flex items-center justify-center gap-2 bg-[#006E62] text-white py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-[#005a50] shadow-lg shadow-[#006E62]/20 transition-all"
-                      >
-                        <CheckCircle2 size={16} /> Terima Hasil Nego
-                      </button>
-                      <button 
-                        onClick={() => setIsNegotiating(true)}
-                        className="flex-1 flex items-center justify-center gap-2 bg-amber-500 text-white py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-amber-600 shadow-lg shadow-amber-500/20 transition-all"
-                      >
-                        <MessageSquare size={16} /> Nego Ulang
-                      </button>
-                      <button 
-                        onClick={() => handleAction('cancelled')}
-                        className="flex-1 flex items-center justify-center gap-2 bg-gray-400 text-white py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-gray-500 shadow-lg shadow-gray-400/20 transition-all"
-                      >
-                        <XCircle size={16} /> Batalkan Pengajuan
-                      </button>
-                    </>
-                  )}
-                </div>
-              ) : (
-                <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 space-y-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Form Penawaran Baru</h5>
-                    <button onClick={() => setIsNegotiating(false)} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-[9px] font-bold text-gray-400 uppercase px-1">Tgl Awal Baru</label>
-                      <input 
-                        type="date" 
-                        value={negoData.start_date} 
-                        onChange={(e) => setNegoData(prev => ({ ...prev, start_date: e.target.value }))}
-                        className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl text-xs font-bold focus:ring-2 focus:ring-[#006E62]/20 outline-none"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[9px] font-bold text-gray-400 uppercase px-1">Tgl Akhir Baru</label>
-                      <input 
-                        type="date" 
-                        value={negoData.end_date} 
-                        onChange={(e) => setNegoData(prev => ({ ...prev, end_date: e.target.value }))}
-                        className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl text-xs font-bold focus:ring-2 focus:ring-[#006E62]/20 outline-none"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-bold text-gray-400 uppercase px-1">Alasan Penawaran</label>
-                    <textarea 
-                      placeholder="Jelaskan alasan Anda menawarkan tanggal ini..."
-                      value={negoData.reason}
-                      onChange={(e) => setNegoData(prev => ({ ...prev, reason: e.target.value }))}
-                      rows={2}
-                      className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl text-xs font-medium focus:ring-2 focus:ring-[#006E62]/20 outline-none resize-none"
-                    />
-                  </div>
-                  <button 
-                    onClick={() => handleAction('negotiating')}
-                    disabled={!negoData.reason}
-                    className="w-full py-3 bg-[#006E62] text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-[#005a50] shadow-lg shadow-[#006E62]/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    <Send size={16} /> Kirim Penawaran Negosiasi
-                  </button>
-                </div>
-              )}
+              <div className="flex flex-wrap gap-3">
+                {isAdmin ? (
+                  <>
+                    <button 
+                      onClick={() => handleAction('approved')}
+                      disabled={isSaving}
+                      className="flex-1 flex items-center justify-center gap-2 bg-[#006E62] text-white py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-[#005a50] shadow-lg shadow-[#006E62]/20 transition-all disabled:opacity-50"
+                    >
+                      <CheckCircle2 size={16} /> Setujui Izin
+                    </button>
+                    <button 
+                      onClick={() => handleAction('rejected')}
+                      disabled={isSaving}
+                      className="flex-1 flex items-center justify-center gap-2 bg-rose-500 text-white py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-rose-600 shadow-lg shadow-rose-500/20 transition-all disabled:opacity-50"
+                    >
+                      <XCircle size={16} /> Tolak Izin
+                    </button>
+                  </>
+                ) : isPending && (
+                  <>
+                    <button 
+                      onClick={() => handleAction('cancelled')}
+                      disabled={isSaving}
+                      className="w-full flex items-center justify-center gap-2 bg-gray-400 text-white py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-gray-500 shadow-lg shadow-gray-400/20 transition-all disabled:opacity-50"
+                    >
+                      <XCircle size={16} /> Batalkan Pengajuan
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           )}
         </div>

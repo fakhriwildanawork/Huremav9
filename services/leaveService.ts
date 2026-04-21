@@ -397,7 +397,7 @@ export const leaveService = {
   /**
    * Memperbarui status pengajuan libur
    */
-  async updateStatus(id: string, status: 'approved' | 'rejected'): Promise<void> {
+  async updateStatus(id: string, status: 'approved' | 'rejected', verifierId?: string, notes?: string): Promise<void> {
     const { error } = await supabase
       .from('account_leave_requests')
       .update({ 
@@ -407,6 +407,59 @@ export const leaveService = {
       .eq('id', id);
     
     if (error) throw error;
+
+    // Sinkronisasi ke tabel submissions pusat
+    try {
+      const submissionStatus = status === 'approved' ? 'Disetujui' : 'Ditolak';
+      
+      const { data: current } = await supabase
+        .from('account_leave_requests')
+        .select('account_id')
+        .eq('id', id)
+        .single();
+
+      if (current) {
+        const { data: sub } = await supabase
+          .from('account_submissions')
+          .select('id')
+          .eq('account_id', current.account_id)
+          .eq('type', 'Libur Mandiri')
+          .contains('submission_data', { leave_request_id: id })
+          .maybeSingle();
+
+        if (sub) {
+          await supabase.from('account_submissions')
+            .update({ 
+              status: submissionStatus,
+              verifier_id: verifierId,
+              verified_at: new Date().toISOString(),
+              verification_notes: notes,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', sub.id);
+        }
+      }
+    } catch (subError) {
+      console.warn('Failed to update central submission status:', subError);
+    }
+  },
+
+  /**
+   * Mendapatkan info verifikator dari tabel submissions
+   */
+  async getVerifierInfo(requestId: string): Promise<any> {
+    const { data, error } = await supabase
+      .from('account_submissions')
+      .select('verified_at, verification_notes, verifier:accounts!verifier_id(full_name, photo_google_id)')
+      .eq('type', 'Libur Mandiri')
+      .contains('submission_data', { leave_request_id: requestId })
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Error fetching verifier info:', error);
+      return null;
+    }
+    return data;
   },
 
   /**

@@ -71,14 +71,7 @@ export const permissionService = {
       .insert({
         ...insertData,
         status,
-        current_negotiator_role: status === 'approved' ? 'user' : 'admin',
-        negotiation_data: [{
-          role: forceStatus ? 'admin' : 'user',
-          start_date: input.start_date,
-          end_date: input.end_date,
-          reason: input.description,
-          timestamp: new Date().toISOString()
-        }]
+        updated_at: new Date().toISOString()
       })
       .select()
       .single();
@@ -114,17 +107,13 @@ export const permissionService = {
   },
 
   /**
-   * Negosiasi / Respon Izin (Admin atau User)
+   * Memperbarui status pengajuan izin
    */
-  async negotiate(
+  async updateStatus(
     id: string, 
-    role: 'admin' | 'user', 
-    startDate: string, 
-    endDate: string, 
-    reason: string,
-    status: 'negotiating' | 'approved' | 'rejected' | 'cancelled'
+    status: 'approved' | 'rejected' | 'cancelled',
+    reason?: string
   ): Promise<void> {
-    // Validasi sesi kustom
     const currentUser = authService.getCurrentUser();
     if (!currentUser) {
       throw new Error('Sesi Anda telah berakhir. Silakan login kembali.');
@@ -132,48 +121,26 @@ export const permissionService = {
 
     const { data: current, error: fetchError } = await supabase
       .from('account_permission_requests')
-      .select('negotiation_data, account_id, permission_type')
+      .select('account_id, permission_type')
       .eq('id', id)
       .single();
 
-    if (fetchError) {
-      console.error('Error fetching current negotiation data:', fetchError);
-      throw fetchError;
-    }
-
-    const newHistory = [
-      ...(current?.negotiation_data || []),
-      {
-        role,
-        start_date: startDate,
-        end_date: endDate,
-        reason,
-        timestamp: new Date().toISOString()
-      }
-    ];
+    if (fetchError) throw fetchError;
 
     const { error } = await supabase
       .from('account_permission_requests')
       .update({
         status,
-        start_date: startDate,
-        end_date: endDate,
-        negotiation_data: newHistory,
-        current_negotiator_role: role === 'admin' ? 'user' : 'admin',
         updated_at: new Date().toISOString()
       })
       .eq('id', id);
     
-    if (error) {
-      console.error('Error updating permission negotiation:', error);
-      throw error;
-    }
+    if (error) throw error;
 
     // Update status di tabel submissions pusat
     try {
       const submissionStatus = status === 'approved' ? 'Disetujui' : status === 'rejected' ? 'Ditolak' : status === 'cancelled' ? 'Dibatalkan' : 'Pending';
       
-      // Cari submission yang berkaitan
       const { data: sub } = await supabase
         .from('account_submissions')
         .select('id')
@@ -186,19 +153,24 @@ export const permissionService = {
         await supabase.from('account_submissions')
           .update({ 
             status: submissionStatus,
-            description: reason,
-            submission_data: {
-              permission_type: current.permission_type,
-              start_date: startDate,
-              end_date: endDate,
-              permission_request_id: id
-            }
+            verifier_id: (status === 'approved' || status === 'rejected') ? currentUser.id : null,
+            verified_at: (status === 'approved' || status === 'rejected') ? new Date().toISOString() : null,
+            verification_notes: reason,
+            description: reason || (status === 'approved' ? 'Disetujui' : status === 'rejected' ? 'Ditolak' : 'Dibatalkan'),
+            updated_at: new Date().toISOString()
           })
           .eq('id', sub.id);
       }
     } catch (subError) {
       console.warn('Failed to update central submission status:', subError);
     }
+  },
+
+  /**
+   * Alias untuk maintain kompatibilitas jika perlu, tapi disarankan pakai updateStatus
+   */
+  async negotiate(id: string, role: any, startDate: any, endDate: any, reason: string, status: any): Promise<void> {
+    return this.updateStatus(id, status, reason);
   },
 
   /**
@@ -245,7 +217,7 @@ export const permissionService = {
   async getVerifierInfo(requestId: string): Promise<any> {
     const { data, error } = await supabase
       .from('account_submissions')
-      .select('verified_at, verifier:accounts!verifier_id(full_name, photo_google_id)')
+      .select('verified_at, verification_notes, verifier:accounts!verifier_id(full_name, photo_google_id)')
       .eq('type', 'Izin')
       .contains('submission_data', { permission_request_id: requestId })
       .maybeSingle();

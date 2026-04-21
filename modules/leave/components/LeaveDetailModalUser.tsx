@@ -1,8 +1,9 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { LeaveRequest } from '../../../types';
 import { formatDateID } from '../../../utils/dateFormatter';
 import { googleDriveService } from '../../../services/googleDriveService';
+import { leaveService } from '../../../services/leaveService';
 import { mobilePopUpSizeGuide } from '../../../utils/mobilePopUpSizeGuide';
 import { 
   X, 
@@ -12,7 +13,9 @@ import {
   Clock, 
   FileUp, 
   Eye,
-  Info
+  Info,
+  User,
+  ShieldCheck
 } from 'lucide-react';
 
 interface LeaveDetailModalUserProps {
@@ -24,6 +27,27 @@ const LeaveDetailModalUser: React.FC<LeaveDetailModalUserProps> = ({
   leave,
   onClose
 }) => {
+  const [verifierInfo, setVerifierInfo] = useState<any>(null);
+  const [isLoadingVerifier, setIsLoadingVerifier] = useState(false);
+
+  useEffect(() => {
+    if (leave.status === 'approved' || leave.status === 'rejected') {
+      loadVerifierInfo();
+    }
+  }, [leave.id, leave.status]);
+
+  const loadVerifierInfo = async () => {
+    try {
+      setIsLoadingVerifier(true);
+      const info = await leaveService.getVerifierInfo(leave.id);
+      setVerifierInfo(info);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoadingVerifier(false);
+    }
+  };
+
   return (
     <div className={mobilePopUpSizeGuide.overlay}>
       <div className={mobilePopUpSizeGuide.container}>
@@ -137,6 +161,49 @@ const LeaveDetailModalUser: React.FC<LeaveDetailModalUserProps> = ({
                   </a>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Verifier Info (Bottom) */}
+          {verifierInfo && (
+            <div className="space-y-4 pt-4 animate-in fade-in slide-in-from-bottom duration-500">
+               <div className="flex items-center gap-2 mb-2 px-1">
+                  <ShieldCheck size={16} className="text-[#006E62]" />
+                  <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Informasi Verifikasi</h4>
+               </div>
+               
+               <div className="bg-[#006E62]/5 border border-[#006E62]/10 rounded-2xl overflow-hidden">
+                  <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-full overflow-hidden border-4 border-white bg-[#006E62]/10 flex items-center justify-center shrink-0 shadow-sm">
+                        {verifierInfo.verifier?.photo_google_id ? (
+                          <img 
+                            src={googleDriveService.getFileUrl(verifierInfo.verifier.photo_google_id)} 
+                            className="w-full h-full object-cover" 
+                            alt="" 
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <User size={28} className="text-[#006E62]" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-[#006E62]/50 uppercase tracking-[0.2em] mb-0.5">Verifikator</p>
+                        <p className="text-sm font-black text-gray-800 leading-tight">{verifierInfo.verifier?.full_name || 'Administrator'}</p>
+                        <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-tight">
+                          {formatDateID(verifierInfo.verified_at)} • {new Date(verifierInfo.verified_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 border-t md:border-t-0 md:border-l border-[#006E62]/10 pt-4 md:pt-0 md:pl-6 min-h-[50px] flex flex-col justify-center">
+                      <p className="text-[10px] font-black text-[#006E62]/50 uppercase tracking-[0.2em]">Catatan / Alasan Verifikasi</p>
+                      <p className="text-xs text-gray-600 italic leading-relaxed font-medium">
+                        "{verifierInfo.verification_notes || (leave.status === 'approved' ? 'Disetujui tanpa catatan tambahan.' : 'Ditolak tanpa catatan tambahan.')}"
+                      </p>
+                    </div>
+                  </div>
+               </div>
             </div>
           )}
         </div>

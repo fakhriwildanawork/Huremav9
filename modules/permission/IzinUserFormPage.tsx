@@ -118,10 +118,24 @@ const IzinUserFormPage: React.FC<IzinUserFormPageProps> = ({
 
       await permissionService.create(submissionData);
       
+      // Cleanup logic if it's a re-submission of a rejected request
+      if (editData && editData.status === 'rejected') {
+        try {
+          // Delete old record and associated submissions
+          await permissionService.delete(editData.id);
+          // Delete old file from Google Drive if it exists
+          if (editData.file_id) {
+            await googleDriveService.deleteFile(editData.file_id);
+          }
+        } catch (cleanupError) {
+          console.warn('Silent cleanup error:', cleanupError);
+        }
+      }
+
       onSuccess();
       Swal.fire({
         title: 'Berhasil',
-        text: 'Pengajuan izin telah dikirim.',
+        text: editData ? 'Pengajuan ulang telah dikirim.' : 'Pengajuan izin telah dikirim.',
         icon: 'success',
         timer: 2000,
         showConfirmButton: false
