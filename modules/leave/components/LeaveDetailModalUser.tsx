@@ -198,7 +198,7 @@ const LeaveDetailModalUser: React.FC<LeaveDetailModalUserProps> = ({
 
                     <div className="space-y-2 border-t md:border-t-0 md:border-l border-[#006E62]/10 pt-4 md:pt-0 md:pl-6 min-h-[50px] flex flex-col justify-center">
                       <p className="text-[10px] font-black text-[#006E62]/50 uppercase tracking-[0.2em]">Catatan / Alasan Verifikasi</p>
-                      <p className="text-xs text-gray-600 italic leading-relaxed font-medium">
+                      <p className="text-xs text-gray-600 italic leading-relaxed font-medium break-words whitespace-pre-wrap">
                         "{verifierInfo.verification_notes || (leave.status === 'approved' ? 'Disetujui tanpa catatan tambahan.' : 'Ditolak tanpa catatan tambahan.')}"
                       </p>
                     </div>

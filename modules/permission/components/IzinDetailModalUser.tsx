@@ -211,14 +211,14 @@ const IzinDetailModalUser: React.FC<IzinDetailModalUserProps> = ({
           {verifierInfo && (
             <div className="space-y-4 pt-4 animate-in fade-in slide-in-from-bottom duration-500">
                <div className="flex items-center gap-2 mb-2 px-1">
-                  <ShieldCheck size={16} className="text-emerald-600" />
+                  <ShieldCheck size={16} className="text-[#006E62]" />
                   <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Informasi Verifikasi</h4>
                </div>
                
-               <div className="bg-emerald-50/30 border border-emerald-100/50 rounded-2xl overflow-hidden">
+               <div className="bg-[#006E62]/5 border border-[#006E62]/10 rounded-2xl overflow-hidden">
                   <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                     <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-full overflow-hidden border-4 border-white bg-emerald-100 flex items-center justify-center shrink-0 shadow-sm">
+                      <div className="w-14 h-14 rounded-full overflow-hidden border-4 border-white bg-[#006E62]/10 flex items-center justify-center shrink-0 shadow-sm">
                         {verifierInfo.verifier?.photo_google_id ? (
                           <img 
                             src={getPhotoUrl(verifierInfo.verifier.photo_google_id) || ''} 
@@ -227,11 +227,11 @@ const IzinDetailModalUser: React.FC<IzinDetailModalUserProps> = ({
                             referrerPolicy="no-referrer"
                           />
                         ) : (
-                          <User size={28} className="text-emerald-600" />
+                          <User size={28} className="text-[#006E62]" />
                         )}
                       </div>
                       <div>
-                        <p className="text-[10px] font-black text-emerald-600/50 uppercase tracking-[0.2em] mb-0.5">Verifikator</p>
+                        <p className="text-[10px] font-black text-[#006E62]/50 uppercase tracking-[0.2em] mb-0.5">Verifikator</p>
                         <p className="text-sm font-black text-gray-800 leading-tight">{verifierInfo.verifier?.full_name || 'Administrator'}</p>
                         <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-tight">
                           {formatDateCustom(verifierInfo.verified_at)} • {new Date(verifierInfo.verified_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
@@ -239,9 +239,9 @@ const IzinDetailModalUser: React.FC<IzinDetailModalUserProps> = ({
                       </div>
                     </div>
 
-                    <div className="space-y-2 border-t md:border-t-0 md:border-l border-emerald-100/50 pt-4 md:pt-0 md:pl-6 min-h-[50px] flex flex-col justify-center">
-                      <p className="text-[10px] font-black text-emerald-600/50 uppercase tracking-[0.2em]">Catatan / Alasan Verifikasi</p>
-                      <p className="text-xs text-gray-600 italic leading-relaxed font-medium">
+                    <div className="space-y-2 border-t md:border-t-0 md:border-l border-[#006E62]/10 pt-4 md:pt-0 md:pl-6 min-h-[50px] flex flex-col justify-center">
+                      <p className="text-[10px] font-black text-[#006E62]/50 uppercase tracking-[0.2em]">Catatan / Alasan Verifikasi</p>
+                      <p className="text-xs text-gray-600 italic leading-relaxed font-medium break-words whitespace-pre-wrap">
                         "{verifierInfo.verification_notes || (request.status === 'approved' ? 'Disetujui tanpa catatan tambahan.' : 'Ditolak tanpa catatan tambahan.')}"
                       </p>
                     </div>
