@@ -146,19 +146,21 @@ const IzinDashboard: React.FC<IzinDashboardProps> = ({
             <button 
               key={req.id} 
               onClick={() => setSelectedRequest(req)}
-              className={`${listCardStyleGuide.container} flex-col items-stretch gap-3`}
+              className={`${listCardStyleGuide.container} flex-col items-stretch gap-2.5`}
             >
               {/* Line 1: Date (Left) | Status (Right) */}
               <div className="flex items-center justify-between w-full">
-                <p className={`${listCardStyleGuide.title} !text-[11px]`}>
+                <p className={`${listCardStyleGuide.title} !text-[10px]`}>
                   {formatDateID(req.start_date)} {req.end_date && req.end_date !== req.start_date ? `- ${formatDateID(req.end_date)}` : ''}
                 </p>
-                {getStatusBadge(req.status)}
+                <div className="shrink-0 scale-90 origin-right">
+                  {getStatusBadge(req.status)}
+                </div>
               </div>
 
               {/* Line 2: Permission Type (Left) | Reason (Right Truncated) */}
               <div className="flex items-center justify-between w-full gap-4">
-                <p className={`${listCardStyleGuide.subtitle} text-left opacity-100 !normal-case font-black text-[#006E62] shrink-0`}>
+                <p className={`${listCardStyleGuide.subtitle} text-left opacity-100 !normal-case font-black text-[#006E62] shrink-0 !text-[10px]`}>
                   {req.permission_type}
                 </p>
                 <p className="text-[10px] text-gray-400 font-medium italic truncate flex-1 text-left">
@@ -166,18 +168,18 @@ const IzinDashboard: React.FC<IzinDashboardProps> = ({
                 </p>
               </div>
 
-              {/* Line 3: Actions (Right) */}
-              <div className="flex items-center justify-end w-full gap-2">
+              {/* Line 3: Actions (Right) - Fixed height for consistency */}
+              <div className="h-7 flex items-center justify-end w-full gap-2">
                 {req.status === 'rejected' && (
                   <div 
                     onClick={(e) => {
                       e.stopPropagation();
                       if (onAjukan) onAjukan(req);
                     }}
-                    className={`${listCardStyleGuide.actionButton} !bg-transparent !border-none !shadow-none text-[#006E62] px-0`}
+                    className={`${listCardStyleGuide.actionButton} !w-7 !h-7 !bg-transparent !border-none !shadow-none text-[#006E62] px-0`}
                     title="Ajukan Ulang"
                   >
-                    <RefreshCcw size={16} />
+                    <RefreshCcw size={14} />
                   </div>
                 )}
                 {(req.status === 'pending' || req.status === 'rejected') && (
@@ -186,10 +188,10 @@ const IzinDashboard: React.FC<IzinDashboardProps> = ({
                       e.stopPropagation();
                       handleDelete(req.id);
                     }}
-                    className={`${listCardStyleGuide.actionButton} !bg-transparent !border-none !shadow-none text-rose-500 px-0`}
+                    className={`${listCardStyleGuide.actionButton} !w-7 !h-7 !bg-transparent !border-none !shadow-none text-rose-500 px-0`}
                     title="Hapus"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={14} />
                   </div>
                 )}
               </div>

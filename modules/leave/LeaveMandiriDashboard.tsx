@@ -167,33 +167,35 @@ const LeaveMandiriDashboard: React.FC<LeaveMandiriDashboardProps> = ({
             <button 
               key={req.id} 
               onClick={() => setSelectedRequest(req)}
-              className={`${listCardStyleGuide.container} flex-col items-stretch gap-3`}
+              className={`${listCardStyleGuide.container} flex-col items-stretch gap-2.5`}
             >
               {/* Line 1: Date (Left) | Status (Right) */}
               <div className="flex items-center justify-between w-full">
-                <p className={listCardStyleGuide.title}>
+                <p className={`${listCardStyleGuide.title} !text-[11px]`}>
                   {formatDateID(req.start_date)}
                 </p>
-                {getStatusBadge(req.status)}
+                <div className="shrink-0 scale-90 origin-right">
+                  {getStatusBadge(req.status)}
+                </div>
               </div>
 
               {/* Line 2: Description (Left Truncated) */}
-              <p className={`${listCardStyleGuide.subtitle} text-left opacity-100 !normal-case font-medium text-gray-500 line-clamp-1 truncate`}>
+              <p className={`${listCardStyleGuide.subtitle} text-left opacity-100 !normal-case font-black text-[#006E62] shrink-0 !text-[10px]`}>
                 {req.description || 'Tidak ada keterangan'}
               </p>
 
-              {/* Line 3: Actions (Right) */}
-              <div className="flex items-center justify-end w-full gap-2">
+              {/* Line 3: Actions (Right) - Fixed height for consistency */}
+              <div className="h-7 flex items-center justify-end w-full gap-2">
                 {req.status === 'rejected' && (
                   <div 
                     onClick={(e) => {
                       e.stopPropagation();
                       if (onAjukan) onAjukan(req);
                     }}
-                    className={`${listCardStyleGuide.actionButton} !bg-transparent !border-none !shadow-none text-[#006E62] px-0`}
+                    className={`${listCardStyleGuide.actionButton} !w-7 !h-7 !bg-transparent !border-none !shadow-none text-[#006E62] px-0`}
                     title="Ajukan Ulang"
                   >
-                    <RefreshCcw size={16} />
+                    <RefreshCcw size={14} />
                   </div>
                 )}
                 {(req.status === 'pending' || req.status === 'rejected') && (
@@ -202,10 +204,10 @@ const LeaveMandiriDashboard: React.FC<LeaveMandiriDashboardProps> = ({
                       e.stopPropagation();
                       handleDelete(req.id);
                     }}
-                    className={`${listCardStyleGuide.actionButton} !bg-transparent !border-none !shadow-none text-rose-500 px-0`}
+                    className={`${listCardStyleGuide.actionButton} !w-7 !h-7 !bg-transparent !border-none !shadow-none text-rose-500 px-0`}
                     title="Hapus"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={14} />
                   </div>
                 )}
               </div>
