@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Calendar, FileText, Upload, Info, ClipboardList, Loader2 } from 'lucide-react';
+import { X, Save, Calendar, FileText, Upload, Info, ClipboardList, Loader2, Search, ChevronDown } from 'lucide-react';
 import { PermissionRequestInput, Account } from '../../types';
 import { googleDriveService } from '../../services/googleDriveService';
+import AccountListItem from '../../components/Common/AccountListItem';
 import Swal from 'sweetalert2';
 import { MainButtonStyle } from '../../utils/mainButtonStyle';
 import { CancelButtonStyle } from '../../utils/cancelButtonStyle';
@@ -15,15 +16,10 @@ interface PermissionFormProps {
 }
 
 const PERMISSION_TYPES = [
-  'Sakit (Dengan Surat Dokter)',
-  'Sakit (Tanpa Surat Dokter)',
-  'Urusan Keluarga Penting',
-  'Izin Menikah',
-  'Izin Kedukaan',
-  'Izin Melahirkan/Keguguran',
-  'Izin Khitan/Baptis Anak',
-  'Izin Keperluan Pendidikan',
-  'Lainnya'
+  'Izin Sakit',
+  'Izin Keperluan Mendesak',
+  'Izin Dukacita',
+  'Lain-lain'
 ];
 
 const PermissionForm: React.FC<PermissionFormProps> = ({ 
@@ -46,6 +42,14 @@ const PermissionForm: React.FC<PermissionFormProps> = ({
   const [loadingAccounts, setLoadingAccounts] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showEmployeeList, setShowEmployeeList] = useState(false);
+
+  const selectedEmployee = accounts.find(acc => acc.id === formData.account_id);
+  const filteredAccounts = accounts.filter(acc => 
+    acc.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    acc.internal_nik.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   useEffect(() => {
     if (isAdmin) {
@@ -137,20 +141,56 @@ const PermissionForm: React.FC<PermissionFormProps> = ({
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
           <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
             {isAdmin && (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Pilih Karyawan (*)</label>
-                <select
-                  required
-                  name="account_id"
-                  value={formData.account_id || ''}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-[#006E62] transition-all"
-                >
-                  <option value="">-- Pilih Karyawan --</option>
-                  {accounts.map(acc => (
-                    <option key={acc.id} value={acc.id}>{acc.full_name} ({acc.internal_nik})</option>
-                  ))}
-                </select>
+                
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowEmployeeList(!showEmployeeList)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-[#006E62] transition-all"
+                  >
+                    <span>{selectedEmployee ? selectedEmployee.full_name : '-- Pilih Karyawan --'}</span>
+                    <ChevronDown size={16} className={`transition-transform duration-200 ${showEmployeeList ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {showEmployeeList && (
+                    <div className="absolute top-full left-0 right-0 z-[110] mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[300px] animate-in slide-in-from-top-2 duration-200">
+                      <div className="p-3 border-b border-gray-50 bg-gray-50/50">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                          <input
+                            type="text"
+                            placeholder="Cari nama atau NIK..."
+                            className="w-full pl-9 pr-4 py-2 bg-white border border-gray-100 rounded-xl text-xs font-medium outline-none focus:ring-1 focus:ring-[#006E62]"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+                        {loadingAccounts ? (
+                          <div className="py-8 flex justify-center"><Loader2 size={16} className="animate-spin text-[#006E62]" /></div>
+                        ) : filteredAccounts.length === 0 ? (
+                          <div className="py-8 text-center text-[10px] font-bold text-gray-400 uppercase">Karyawan tidak ditemukan</div>
+                        ) : (
+                          filteredAccounts.map(acc => (
+                            <AccountListItem
+                              key={acc.id}
+                              account={acc}
+                              isSelected={formData.account_id === acc.id}
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, account_id: acc.id }));
+                                setShowEmployeeList(false);
+                              }}
+                            />
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -195,7 +235,7 @@ const PermissionForm: React.FC<PermissionFormProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px) font-black text-gray-400 uppercase tracking-widest ml-1">Keterangan / Alasan (*)</label>
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Keterangan / Alasan (*)</label>
               <textarea 
                 required
                 name="description" 
@@ -221,13 +261,7 @@ const PermissionForm: React.FC<PermissionFormProps> = ({
               </div>
             </div>
 
-            <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl flex gap-3 items-start">
-              <Info size={16} className="text-blue-500 shrink-0 mt-0.5" />
-              <p className="text-[9px] text-blue-700 leading-relaxed font-bold uppercase">
-                Pengajuan izin ini tidak memotong jatah cuti tahunan Anda. Admin dapat menyetujui, menolak, atau menawarkan negosiasi tanggal jika diperlukan.
-              </p>
             </div>
-          </div>
 
           <div className="p-8 border-t border-gray-50 bg-white space-y-2 shrink-0">
             <button 
