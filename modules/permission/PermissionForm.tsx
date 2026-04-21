@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Calendar, FileText, Upload, Info, ClipboardList, Loader2, Search, ChevronDown } from 'lucide-react';
-import { PermissionRequestInput, Account } from '../../types';
+import { PermissionRequestInput, Account, AuthUser } from '../../types';
 import { googleDriveService } from '../../services/googleDriveService';
+import { authService } from '../../services/authService';
+import { accountFilterHelper } from '../../utils/accountFilterHelper';
 import AccountListItem from '../../components/Common/AccountListItem';
 import Swal from 'sweetalert2';
 import { MainButtonStyle } from '../../utils/mainButtonStyle';
@@ -39,17 +41,23 @@ const PermissionForm: React.FC<PermissionFormProps> = ({
   });
 
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [loadingAccounts, setLoadingAccounts] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showEmployeeList, setShowEmployeeList] = useState(false);
 
+  const displayAccounts = accountFilterHelper.filter(accounts, currentUser, 'isolasi');
   const selectedEmployee = accounts.find(acc => acc.id === formData.account_id);
-  const filteredAccounts = accounts.filter(acc => 
+  const filteredAccounts = displayAccounts.filter(acc => 
     acc.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     acc.internal_nik.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  useEffect(() => {
+    setCurrentUser(authService.getCurrentUser());
+  }, []);
 
   useEffect(() => {
     if (isAdmin) {
